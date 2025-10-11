@@ -90,7 +90,7 @@ def power_transform(
 def inference(
     user_text = "", 
     first_call=False,
-    last_ans=False
+    last_ans=-1
 ):
     model_dir = "./model"
 
@@ -123,15 +123,19 @@ def inference(
     cond_map = sspec_full[:, 1]
 
     if(last_qid>-1):
-        if(last_ans==True):
+        if(last_ans==1):
             #here for inference and dump
             sclr_idx.append(last_qid)
             dont_ask.append(last_qid)
 
-        else:
+        elif(last_ans==0):
             #here for inference and dump
             null_idx.append(last_qid)
             dont_ask.append(last_qid)
+
+        else:
+            #pass question case!! should be absolutely no change
+            pass
 
     if(len(sclr_idx)>0):
         #here for inference

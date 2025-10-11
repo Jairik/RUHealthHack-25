@@ -6,3 +6,5 @@ export_keys.sh
 /backend/data/hefty
 /infra/.terraform
 /infra/infra-db-only/.terraform
+configure_envs.sh
+.env

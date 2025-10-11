@@ -1,15 +1,162 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Send, Loader2, CheckCircle, XCircle, SkipForward } from "lucide-react";
+import { MessageSquare, Send, Loader2, CheckCircle, XCircle, SkipForward, Mic, StopCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Check for Web Speech API support
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+const isSpeechRecognitionSupported = !!SpeechRecognition;
+
+// --- Custom Speech-to-Text Hook ---
+const useSpeechToText = (currentValue, setValue) => {
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+  const finalTranscriptRef = useRef(currentValue); // Stores confirmed text
+
+  // Update ref when external value changes (e.g., manual typing)
+  useEffect(() => {
+      if (!isListening) {
+          finalTranscriptRef.current = currentValue;
+      }
+  }, [currentValue, isListening]);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  }, [isListening]);
+
+  useEffect(() => {
+    if (isSpeechRecognitionSupported) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event) => {
+        let interimTranscript = "";
+        let finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + " ";
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        if (finalTranscript) {
+          finalTranscriptRef.current += finalTranscript;
+        }
+
+        // Update the state (Textarea value) with previous final text + current interim text
+        setValue(finalTranscriptRef.current + interimTranscript);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+    };
+  }, [setValue]);
+
+  const startListening = () => {
+    if (recognitionRef.current && !isListening) {
+      // Set the ref to the current manual input value before starting
+      finalTranscriptRef.current = currentValue;
+      
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        // Handle case where recognition is already active
+        console.warn("Recognition start failed, possibly already started:", error);
+        setIsListening(true);
+      }
+    } else if (!isSpeechRecognitionSupported) {
+        alert("Speech-to-Text is not supported in this browser. Please use a supported browser like Chrome.");
+    }
+  };
+
+  const clearTranscription = () => {
+    finalTranscriptRef.current = "";
+    // Note: setValue("") is handled by the component's handleSubmit logic
+    stopListening();
+  };
+
+  return { isListening, startListening, stopListening, clearTranscription };
+};
+// --- End Custom Hook ---
+
+// --- Helper component to render the Mic/Stop button ---
+const MicButton = ({ isListening, startListening, stopListening, loading }) => (
+    <div className="absolute right-3 top-3">
+        {isListening ? (
+            <Button
+                type="button"
+                onClick={stopListening}
+                size="icon"
+                disabled={loading}
+                className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 shadow-md transition-all duration-200"
+            >
+                <StopCircle className="w-5 h-5 text-white" />
+            </Button>
+        ) : (
+            <Button
+                type="button"
+                onClick={startListening}
+                size="icon"
+                disabled={loading || !isSpeechRecognitionSupported}
+                className={`w-8 h-8 rounded-full shadow-md transition-all duration-200 ${
+                    isSpeechRecognitionSupported
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-gray-400 cursor-not-allowed'
+                }`}
+            >
+                <Mic className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
+            </Button>
+        )}
+    </div>
+);
 
 export default function QuestionPanel({ currentQuestion, questionHistory, onSubmitAnswer, loading }) {
   const [notes, setNotes] = useState("");
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [openEndedAnswer, setOpenEndedAnswer] = useState("");
   const scrollRef = useRef(null);
+
+  // Apply the hook to the Initial Note field
+  const { 
+    isListening: isListeningInitial, 
+    startListening: startListeningInitial, 
+    stopListening: stopListeningInitial, 
+    clearTranscription: clearTranscriptionInitial 
+  } = useSpeechToText(openEndedAnswer, setOpenEndedAnswer);
+
+  // Apply the hook to the Additional Notes field
+  const { 
+    isListening: isListeningNotes, 
+    startListening: startListeningNotes, 
+    stopListening: stopListeningNotes, 
+    clearTranscription: clearTranscriptionNotes 
+  } = useSpeechToText(notes, setNotes);
 
   // Check if this is the first question
   const isFirstQuestion = questionHistory.length === 0;
@@ -22,18 +169,23 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
 
   const handleAnswerClick = (answer) => {
     setSelectedAnswer(answer);
+    // Stop recording notes if a structured answer is chosen
+    if (isListeningNotes) stopListeningNotes();
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
     if (isFirstQuestion) {
+      stopListeningInitial();
       // For first question, submit the open-ended answer
       if (openEndedAnswer.trim()) {
         onSubmitAnswer(openEndedAnswer.trim());
         setOpenEndedAnswer("");
+        clearTranscriptionInitial(); // Clear ref on submit
       }
     } else {
+      stopListeningNotes();
       // For subsequent questions, submit yes/no/skip with optional notes
       if (selectedAnswer) {
         const fullAnswer = notes.trim() 
@@ -43,6 +195,7 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
         onSubmitAnswer(fullAnswer);
         setSelectedAnswer(null);
         setNotes("");
+        clearTranscriptionNotes(); // Clear ref on submit
       }
     }
   };
@@ -136,20 +289,28 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {isFirstQuestion ? (
-                /* First Question - Open Ended */
+                /* First Question - Open Ended (with Mic) */
                 <>
                   <div>
                     <label className="block text-base font-bold mb-3 text-indigo-800 dark:text-purple-200">
                       Patient's Response:
                     </label>
+                    <div className="relative">
                     <Textarea
                       value={openEndedAnswer}
                       onChange={(e) => setOpenEndedAnswer(e.target.value)}
                       placeholder="Enter patient's detailed response..."
                       rows={5}
                       disabled={loading}
-                      className="text-base bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-2 border-indigo-300 dark:border-purple-700 font-semibold resize-none"
+                      className="text-base bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-2 border-indigo-300 dark:border-purple-700 font-semibold resize-none pr-14"
                     />
+                     <MicButton
+                          isListening={isListeningInitial}
+                          startListening={startListeningInitial}
+                          stopListening={stopListeningInitial}
+                          loading={loading}
+                      />
+                    </div>
                   </div>
 
                   <Button
@@ -171,7 +332,7 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
                   </Button>
                 </>
               ) : (
-                /* Subsequent Questions - Yes/No/Skip with Optional Notes */
+                /* Subsequent Questions - Yes/No/Skip with Optional Notes (with Mic) */
                 <>
                   <div>
                     <label className="block text-base font-bold mb-3 text-indigo-800 dark:text-purple-200">
@@ -222,19 +383,27 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
                     </div>
                   </div>
 
-                  {/* Optional Notes Field */}
+                  {/* Optional Notes Field (with Mic) */}
                   <div>
                     <label className="block text-sm font-bold mb-2 text-indigo-700 dark:text-purple-300">
                       Additional Notes (Optional):
                     </label>
+                    <div className="relative">
                     <Textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Add any additional details about the patient's response..."
                       rows={3}
                       disabled={loading}
-                      className="text-base bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-2 border-indigo-300 dark:border-purple-700 font-semibold resize-none"
+                      className="text-base bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-2 border-indigo-300 dark:border-purple-700 font-semibold resize-none pr-14"
                     />
+                      <MicButton
+                          isListening={isListeningNotes}
+                          startListening={startListeningNotes}
+                          stopListening={stopListeningNotes}
+                          loading={loading}
+                      />
+                    </div>
                   </div>
 
                   <Button

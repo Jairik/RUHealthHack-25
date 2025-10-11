@@ -8,10 +8,6 @@ import { Home, Activity, Moon, Sun, Menu, X, LayoutDashboard } from "lucide-reac
 export default function Layout({ children, currentPageName }) {
   const [darkMode, setDarkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user] = useState({
-    full_name: "Agent Smith",
-    email: "agent@lunara.com"
-  });
 
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -96,20 +92,6 @@ export default function Layout({ children, currentPageName }) {
                 )}
               </Button>
 
-              {/* User Info */}
-              {user && (
-                <div className="hidden md:block">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-purple-900/50 rounded-xl border border-indigo-300 dark:border-purple-700">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
-                      {user.full_name?.charAt(0) || user.email?.charAt(0)}
-                    </div>
-                    <span className="text-sm font-semibold text-indigo-900 dark:text-purple-200">
-                      {user.full_name || user.email}
-                    </span>
-                  </div>
-                </div>
-              )}
-
               {/* Mobile Menu Button */}
               <Button
                 variant="ghost"
@@ -150,18 +132,6 @@ export default function Layout({ children, currentPageName }) {
                   </Button>
                 </Link>
               ))}
-              {user && (
-                <div className="pt-4 border-t border-indigo-200 dark:border-purple-800">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-purple-900/50 rounded-xl">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-full flex items-center justify-center text-white font-bold">
-                      {user.full_name?.charAt(0) || user.email?.charAt(0)}
-                    </div>
-                    <span className="text-sm font-semibold text-indigo-900 dark:text-purple-200">
-                      {user.full_name || user.email}
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}

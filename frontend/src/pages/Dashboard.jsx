@@ -32,7 +32,7 @@ export default function Dashboard() {
       
       // If no cases exist, create some mock data
       if (storedCases.length === 0) {
-        const mockCases = [
+        const initialMockCases = [
           {
             id: "1",
             agent_id: "A001",
@@ -48,7 +48,7 @@ export default function Dashboard() {
             ],
             final_recommendation: "Minimally Invasive Surgery",
             confidence_score: 85,
-            recommended_doctor: "Maria Rodriguez",
+            recommended_doctor: "Dr. Maria Rodriguez", // Added "Dr. " prefix for consistency
             subspecialist_confidences: [
               { name: "Minimally Invasive Surgery", confidence: 85 },
               { name: "General OB/GYN", confidence: 60 },
@@ -76,7 +76,7 @@ export default function Dashboard() {
             ],
             final_recommendation: "Reproductive Endocrinology",
             confidence_score: 92,
-            recommended_doctor: "Emily Chen",
+            recommended_doctor: "Dr. Emily Chen", // Added "Dr. " prefix for consistency
             subspecialist_confidences: [
               { name: "Reproductive Endocrinology", confidence: 92 },
               { name: "General OB/GYN", confidence: 55 },
@@ -91,10 +91,22 @@ export default function Dashboard() {
             epic_sent_date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
           }
         ];
-        localStorage.setItem('triageCases', JSON.stringify(mockCases));
-        setTriageCases(mockCases);
+
+        // Add case_number dynamically
+        const mockCasesWithNumbers = initialMockCases.map((caseItem, idx) => ({
+          ...caseItem,
+          case_number: `TRG-${String(idx + 1).padStart(3, '0')}` // e.g., TRG-001, TRG-002
+        }));
+
+        localStorage.setItem('triageCases', JSON.stringify(mockCasesWithNumbers));
+        setTriageCases(mockCasesWithNumbers);
       } else {
-        setTriageCases(storedCases);
+        // Ensure existing cases also have a case_number if not present (for old stored data)
+        const casesWithNumbers = storedCases.map((caseItem, idx) => ({
+          ...caseItem,
+          case_number: caseItem.case_number || `TRG-${String(idx + 1).padStart(3, '0')}`
+        }));
+        setTriageCases(casesWithNumbers);
       }
       
       setLoading(false);
@@ -174,7 +186,8 @@ export default function Dashboard() {
       c.patient_last_name?.toLowerCase().includes(searchLower) ||
       c.final_recommendation?.toLowerCase().includes(searchLower) ||
       c.recommended_doctor?.toLowerCase().includes(searchLower) ||
-      c.agent_id?.toString().includes(searchLower)
+      c.agent_id?.toString().includes(searchLower) ||
+      c.case_number?.toLowerCase().includes(searchLower) // Include case number in search
     );
   });
 
@@ -260,7 +273,7 @@ export default function Dashboard() {
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by patient name, recommendation, doctor, or agent ID..."
+                placeholder="Search by patient name, recommendation, doctor, agent ID, or case number..."
                 className="pl-12 text-lg bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-3 border-indigo-400 dark:border-purple-600 font-semibold h-14"
               />
             </div>
@@ -295,6 +308,12 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2 flex-wrap">
+                            {/* Case Number Badge */}
+                            {case_.case_number && (
+                              <Badge className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 text-white border-0 px-3 py-1 font-black">
+                                {case_.case_number}
+                              </Badge>
+                            )}
                             <CardTitle className="text-2xl font-black text-indigo-900 dark:text-purple-100">
                               {case_.patient_first_name} {case_.patient_last_name}
                             </CardTitle>
@@ -379,7 +398,7 @@ export default function Dashboard() {
                             Recommended Doctor
                           </p>
                           <p className="text-lg font-black text-indigo-900 dark:text-pink-100">
-                            Dr. {case_.recommended_doctor}
+                            {case_.recommended_doctor}
                           </p>
                         </div>
                       </div>
@@ -483,14 +502,14 @@ export default function Dashboard() {
                                       credentials: "MD, FACOG"
                                     },
                                     {
-                                      name: "Emily Chen",
-                                      specialty: case_.subspecialist_confidences?.[1]?.name || "Reproductive Endocrinology",
+                                      name: "Emily Chen", // Hardcoded name, but specialty from next confidence
+                                      specialty: case_.subspecialist_confidences?.[1]?.name || "General OB/GYN",
                                       availability: "Available",
                                       credentials: "MD, FACOG"
                                     },
                                     {
-                                      name: "Maria Rodriguez",
-                                      specialty: case_.subspecialist_confidences?.[2]?.name || "Minimally Invasive Surgery",
+                                      name: "Maria Rodriguez", // Hardcoded name, but specialty from next confidence
+                                      specialty: case_.subspecialist_confidences?.[2]?.name || "Reproductive Endocrinology",
                                       availability: "Next Week",
                                       credentials: "DO, FACOG"
                                     }

@@ -7,7 +7,7 @@ import { TrendingUp, Users, Star, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SubspecialistPanel({ subspecialists, conditions, doctorMatches }) {
-  const matchLabels = ["Best Match", "Top Match", "Second Match", "Third Match", "Fourth Match", "Fifth Match"];
+  const matchLabels = ["Best Match", "Top Match", "Second Match"];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -95,17 +95,17 @@ export default function SubspecialistPanel({ subspecialists, conditions, doctorM
         </CardContent>
       </Card>
 
-      {/* Doctor Matches */}
+      {/* Doctor Matches - Top 3 Only */}
       <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-indigo-800 dark:text-purple-200 text-lg font-black">
             <Users className="w-5 h-5" />
-            Recommended Doctors
+            Top 3 Doctors
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {doctorMatches && doctorMatches.map((doctor, index) => (
+            {doctorMatches && doctorMatches.slice(0, 3).map((doctor, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: 20 }}
@@ -120,7 +120,7 @@ export default function SubspecialistPanel({ subspecialists, conditions, doctorM
                         ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
                         : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
                     } font-black mb-1 text-xs`}>
-                      {index < matchLabels.length ? matchLabels[index] : `Match ${index + 1}`}
+                      {matchLabels[index]}
                       {index === 0 && <Star className="w-2 h-2 ml-1 inline" />}
                     </Badge>
                     <p className="text-sm font-black text-purple-900 dark:text-pink-100">

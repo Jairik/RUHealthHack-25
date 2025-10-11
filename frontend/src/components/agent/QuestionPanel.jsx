@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Send, Loader2, Mic, StopCircle } from "lucide-react"; // Added Mic and StopCircle
+import { MessageSquare, Send, Loader2, Mic, StopCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Check for Web Speech API support
@@ -12,9 +12,12 @@ const isSpeechRecognitionSupported = !!SpeechRecognition;
 
 export default function QuestionPanel({ currentQuestion, questionHistory, onSubmitAnswer, loading }) {
   const [answer, setAnswer] = useState("");
-  const [isListening, setIsListening] = useState(false); // New state for microphone status
-  const recognitionRef = useRef(null); // Ref to store the SpeechRecognition object
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
   const scrollRef = useRef(null);
+
+  // This ref holds the text accumulated so far from final results
+  const finalTranscriptRef = useRef(""); 
 
   // Auto-scroll to the bottom of the history
   useEffect(() => {
@@ -23,12 +26,20 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
     }
   }, [questionHistory]);
 
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      console.log("Speech recognition stopped.");
+    }
+  }, [isListening]);
+
   // Initialize Speech Recognition
   useEffect(() => {
     if (isSpeechRecognitionSupported) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = true; // For continuous recording until stopped
-      recognition.interimResults = true; // Get results while speaking
+      recognition.continuous = true; 
+      recognition.interimResults = true;
       recognition.lang = "en-US"; 
 
       recognition.onresult = (event) => {
@@ -44,11 +55,14 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
           }
         }
         
-        // Update the textarea with the transcription
-        // Note: For 'continuous' set to true, you might want to only append the final transcript
-        // For simplicity here, we'll replace the text with the ongoing transcription.
-        // A more complex setup might manage initial text vs transcription text.
-        setAnswer(finalTranscript + interimTranscript); 
+        // 1. Append final transcript to the ref
+        if (finalTranscript) {
+          finalTranscriptRef.current += finalTranscript;
+        }
+
+        // 2. Update the state with the combined text
+        // This ensures the current sentence (interim) is visible along with the prior text (finalTranscriptRef.current)
+        setAnswer(finalTranscriptRef.current + interimTranscript); 
       };
 
       recognition.onend = () => {
@@ -63,31 +77,30 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
 
       recognitionRef.current = recognition;
     }
+    // Cleanup function for useEffect
+    return () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+    };
   }, []); // Run only once on mount
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
-      // Optional: Clear previous answer when starting to listen
-      // setAnswer(""); 
+      // Clear the current answer and the reference before starting new recording
+      setAnswer("");
+      finalTranscriptRef.current = "";
+      
       try {
         recognitionRef.current.start();
         setIsListening(true);
         console.log("Speech recognition started.");
       } catch (error) {
-        // Catch the error if recognition is already in progress
         console.warn("Recognition start failed, possibly already started:", error);
         setIsListening(true);
       }
     } else if (!isSpeechRecognitionSupported) {
         alert("Speech-to-Text is not supported in this browser. Please use a supported browser like Chrome.");
-    }
-  };
-
-  const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      console.log("Speech recognition stopped.");
     }
   };
   
@@ -98,7 +111,10 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
     }
     if (answer.trim()) {
       onSubmitAnswer(answer);
+      // 👇 This line clears the box on submit
       setAnswer("");
+      // Also clear the reference to reset for the next question
+      finalTranscriptRef.current = ""; 
     }
   };
 
@@ -111,43 +127,45 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Question History */}
+        {/* Question History (omitted for brevity, assume it's here) */}
         <div
           ref={scrollRef}
           className="space-y-4 max-h-96 overflow-y-auto mb-6 pr-2"
         >
           <AnimatePresence>
+            {/* ... question history rendering ... */}
             {questionHistory.map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-2"
-              >
-                {/* Question */}
-                <div className="p-4 bg-blue-100 dark:bg-purple-900/30 rounded-xl border-2 border-blue-300 dark:border-purple-700">
-                  <p className="text-sm font-bold text-blue-600 dark:text-purple-400 mb-1">
-                    Question {index + 1}:
-                  </p>
-                  <p className="text-base font-semibold text-blue-900 dark:text-purple-100">
-                    {item.question}
-                  </p>
-                </div>
-                
-                {/* Answer */}
-                <div className="p-4 bg-cyan-100 dark:bg-pink-900/30 rounded-xl border-2 border-cyan-300 dark:border-pink-700 ml-6">
-                  <p className="text-sm font-bold text-cyan-600 dark:text-pink-400 mb-1">
-                    Patient Response:
-                  </p>
-                  <p className="text-base font-semibold text-cyan-900 dark:text-pink-100">
-                    {item.answer}
-                  </p>
-                </div>
-              </motion.div>
+                <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-2"
+                >
+                    {/* Question */}
+                    <div className="p-4 bg-blue-100 dark:bg-purple-900/30 rounded-xl border-2 border-blue-300 dark:border-purple-700">
+                        <p className="text-sm font-bold text-blue-600 dark:text-purple-400 mb-1">
+                            Question {index + 1}:
+                        </p>
+                        <p className="text-base font-semibold text-blue-900 dark:text-purple-100">
+                            {item.question}
+                        </p>
+                    </div>
+                    
+                    {/* Answer */}
+                    <div className="p-4 bg-cyan-100 dark:bg-pink-900/30 rounded-xl border-2 border-cyan-300 dark:border-pink-700 ml-6">
+                        <p className="text-sm font-bold text-cyan-600 dark:text-pink-400 mb-1">
+                            Patient Response:
+                        </p>
+                        <p className="text-base font-semibold text-cyan-900 dark:text-pink-100">
+                            {item.answer}
+                        </p>
+                    </div>
+                </motion.div>
             ))}
           </AnimatePresence>
         </div>
+        
 
         {/* Current Question */}
         {currentQuestion && (
@@ -167,11 +185,17 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
                 <div className="relative">
                     <Textarea
                       value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
+                      onChange={(e) => {
+                          setAnswer(e.target.value);
+                          // Allows manual typing to be persisted if recognition is off
+                          if (!isListening) {
+                              finalTranscriptRef.current = e.target.value;
+                          }
+                      }}
                       placeholder="Type or transcribe patient's response..."
                       rows={4}
                       disabled={loading}
-                      className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold resize-none pr-14" // Added pr-14 for icon space
+                      className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold resize-none pr-14"
                     />
                     
                     {/* Microphone Button */}

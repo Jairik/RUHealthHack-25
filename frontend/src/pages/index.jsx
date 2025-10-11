@@ -12,6 +12,8 @@ import Dashboard from "./Dashboard";
 
 import CycleTracker from "./CycleTracker";
 
+import Profile from "./Profile"
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -27,6 +29,8 @@ const PAGES = {
     Dashboard: Dashboard,
     
     CycleTracker: CycleTracker,
+
+    Profile: Profile,
     
 }
 
@@ -66,6 +70,8 @@ function PagesContent() {
                 <Route path="/Dashboard" element={<Dashboard />} />
                 
                 <Route path="/CycleTracker" element={<CycleTracker />} />
+
+                <Route path="/Profile" element={<Profile />} />
                 
             </Routes>
         </Layout>

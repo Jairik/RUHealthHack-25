@@ -420,7 +420,7 @@ export default function Triage() {
                   <div>
                     <label className="block text-base font-bold mb-4 text-red-800 dark:text-red-300 flex items-center gap-2">
                       <AlertTriangle className="w-5 h-5" />
-                      RED FLAGS - Select if present (requires immediate attention):
+                      Select if present:
                     </label>
                     <div className="flex flex-wrap gap-3">
                       {redFlags.map((flag) => (

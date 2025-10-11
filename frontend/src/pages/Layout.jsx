@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Activity, Moon, Sun, Menu, X, LayoutDashboard } from "lucide-react";
+import { Home, Activity, Moon, Sun, Menu, X, LayoutDashboard, Key } from "lucide-react";
 
 export default function Layout({ children, currentPageName }) {
   const [darkMode, setDarkMode] = useState(true);
@@ -35,6 +35,8 @@ export default function Layout({ children, currentPageName }) {
     { name: "Home", path: "Home", icon: Home },
     { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
     { name: "Triage", path: "AgentTriage", icon: Activity },
+    { name: "Admin Controls", path: "AdminRules", icon: Key },
+
   ];
 
   const isActive = (path) => {

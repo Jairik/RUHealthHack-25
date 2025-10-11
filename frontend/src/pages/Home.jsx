@@ -36,8 +36,8 @@ export default function Home() {
 
   const stats = [
     { label: "Subspecialties", value: "6", icon: Brain },
-    { label: "Doctor Network", value: "50+", icon: Users },
-    { label: "Triage Accuracy", value: "95%", icon: TrendingUp },
+    { label: "Doctor Network", value: "20+", icon: Users },
+    { label: "Triage Accuracy", value: "97%", icon: TrendingUp },
     { label: "HIPAA Compliant", value: "100%", icon: Lock }
   ];
 

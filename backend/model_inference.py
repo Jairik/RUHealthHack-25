@@ -1,0 +1,157 @@
+import json
+import pandas as pd
+from pathlib import Path
+from typing import List, Tuple, Union
+import numpy as np
+from joblib import load
+from scipy.sparse import hstack
+
+class ConditionSoftmaxPredictor:
+    """
+    Loads artifacts saved by train_softmax_classifier_classwise(...)
+    and provides softmax probabilities for new text.
+    Expected files in model_dir:
+      - sgd_softmax_best.joblib
+      - tfidf_word.joblib
+      - tfidf_char.joblib  (optional; handled if missing)
+      - label_map.json     (list of original condition_IDs, ordered by class index)
+    """
+
+    def __init__(self, model_dir: Union[str, Path]):
+        model_dir = Path(model_dir)
+        self.model = load(model_dir / "sgd_softmax_best.joblib")
+        self.v_word = load(model_dir / "tfidf_word.joblib")
+        # char vectorizer might be absent if you trained word-only
+        char_path = model_dir / "tfidf_char.joblib"
+        self.v_char = load(char_path) if char_path.exists() else None
+
+        with (model_dir / "label_map.json").open() as f:
+            self.label_map: List[int] = json.load(f)  # index -> condition_ID
+        self.n_classes = len(self.label_map)
+
+    def _vectorize(self, texts: List[str]):
+        Xw = self.v_word.transform(texts)
+        if self.v_char is not None:
+            Xc = self.v_char.transform(texts)
+            return hstack([Xw, Xc], format="csr")
+        return Xw
+
+    def predict_proba(self, texts: Union[str, List[str]]) -> np.ndarray:
+        """
+        Returns softmax probabilities with shape (n_samples, n_classes).
+        Each row sums to ~1.0.
+        """
+        if isinstance(texts, str):
+            texts = [texts]
+        X = self._vectorize(texts)
+        proba = self.model.predict_proba(X)
+        return proba
+
+    def topk(self, text: str, k: int = 10) -> List[Tuple[int, float]]:
+        """
+        Returns the top-k (condition_ID, probability) pairs for a single text.
+        """
+        p = self.predict_proba(text)[0]
+        idxs = np.argsort(p)[::-1][:k]
+        return [(int(self.label_map[i]), float(p[i])) for i in idxs]
+
+# ---- convenience wrapper ----
+def load_and_predict_softmax(model_dir: Union[str, Path], user_input: str, k: int = 6):
+    """
+    Loads the model and returns:
+      - 'probs': full softmax vector as a numpy array (classes ordered by label_map)
+      - 'topk': list of (condition_ID, probability) for the top-k classes
+      - 'label_map': the ordered condition_ID list (index -> condition_ID)
+    """
+    predictor = ConditionSoftmaxPredictor(model_dir)
+    probs = predictor.predict_proba(user_input)[0]
+    return {
+        "probs": probs,                          # np.ndarray of length n_classes
+        "topk": predictor.topk(user_input, k=k), # [(condition_ID, prob), ...]
+        "label_map": predictor.label_map         # index -> condition_ID
+    }
+
+def inference(
+    user_text = "i can't hold my pee i have increased pressure in lower abdomen", 
+    k=6
+):
+    model_dir = "./model"
+    out = load_and_predict_softmax(model_dir, user_text, k=k)
+
+    sspec_full = pd.read_csv('./data/symptoms_full.csv').values[:, 1:3]
+    sspec_map = sspec_full[:, 0]
+    cond_map = sspec_full[:, 1]
+
+    topk_cond = [{"condition":cond_map[i[0]],"condition_results":round(i[1], 4)} for i in out['topk']]
+
+    doc_map = pd.read_csv('./data/cond_doc_map.csv').values
+
+    doc_names = pd.read_csv('./data/doc_sspec_map.csv').values
+
+    doc_mapper = out['probs'][doc_map[:, 0]]
+
+
+    doc_prod = doc_map[:, 1:] * doc_mapper[:, None]
+    doc_sum = np.log(np.sum(doc_prod, axis=0)+1)
+
+    e_trans_doc = doc_sum / np.sum(doc_sum)
+    p_trans_doc = power_transform(e_trans_doc, alpha=0.5)
+
+    doc_order_idx = np.argsort(-p_trans_doc)[:6]
+
+    doc_results = np.empty(6, dtype=dict)
+
+    doc_results = {
+        "Best Match":doc_names[doc_order_idx[0],1],
+        "Second Match":doc_names[doc_order_idx[1],1],
+        "Third Match":doc_names[doc_order_idx[2],1],
+        "Fourth Match":doc_names[doc_order_idx[3],1],
+        "Fifth Match":doc_names[doc_order_idx[4],1],
+        "Sixth Match":doc_names[doc_order_idx[5],1],
+    }
+
+    sspec_sum = np.zeros(6, dtype=np.float32)
+
+    for i in range(sspec_map.shape[0]):
+        sspec_sum[sspec_map[i]] += out['probs'][i]
+
+    p_trans_sums = power_transform(sspec_sum)
+
+    sspecs = pd.read_csv('./data/sspec_key_map.csv').values
+
+    order_idx = np.argsort(-p_trans_sums)
+
+
+    results = np.empty(len(p_trans_sums), dtype=dict)
+    for i in range(len(p_trans_sums)):
+        results[i] = {
+            "rank":int(order_idx[i]+1),
+            "subspecialty_name":sspecs[i,1],
+            "subspecialty_short":sspecs[i,2],
+            "percent_match":(round(float(p_trans_sums[i]), 4))
+        }
+
+    results = list(results[order_idx])
+    
+    ret = {
+        "subspecialty_results": results,
+        "doctor_results":doc_results,
+        "condition_results":topk_cond
+    }
+    return ret
+
+def power_transform(
+    arr,
+    alpha   :   float   =   5
+):
+    t_sum = 0
+    for i in range(len(arr)):
+        t_sum += arr[i] ** alpha
+    
+    out = np.zeros(len(arr), dtype=np.float32)
+
+    for i in range(len(out)):
+        out[i] = arr[i] ** alpha / t_sum
+
+    return out
+    

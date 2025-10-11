@@ -23,9 +23,9 @@ export default function Home() {
   ];
 
   const stats = [
-    { label: "Women Empowered", value: "10K+", icon: Activity },
-    { label: "Specialists Available", value: "6", icon: Brain },
-    { label: "Accuracy Rate", value: "95%", icon: Activity },
+    { label: "Woman's Health Specialists", value: "20+", icon: Activity },
+    { label: "Subspecialists Available", value: "6", icon: Brain },
+    { label: "Accuracy Rate", value: "97%", icon: Activity },
     { label: "Secure & Private", value: "100%", icon: Lock }
   ];
 

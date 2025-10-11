@@ -20,10 +20,20 @@ def health():
 def get_user_info(user: models.getUser):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
-    if(aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
-        return {"error": "Patient not found"}
+    if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
+        # TODO Logic here to add to the DB
+        patient_history: str = ""
     # If found, get the patient history
-    patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
+    else:
+        patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
     inference(user_text=patient_history, first_call=True)
-    
-# @app.post("/api/get_patient_info")
+    return { "success": True }
+
+@app.post("/api/get_question")
+def get_question(r: str | int = None):
+    ''' Endpoint to pass in results and get the next question and the results ''' 
+    if(isinstance(r, str)):
+        results: dict = inference(user_text=r)
+    else:
+        results: dict = inference(last_ans=r)
+    return { "results": results }

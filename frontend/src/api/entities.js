@@ -16,7 +16,6 @@ async function getNextQuestion(question, response){
     const url = `${API_BASE_URL}/next_question`;
     // Define the body of the POST request: question and response string
     const body = {
-        question: question,
         response: response
     };
     const res = await fetch(url, {

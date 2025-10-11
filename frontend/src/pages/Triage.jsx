@@ -140,6 +140,28 @@ export default function Triage() {
 
         TRIAGE TIMESTAMP: ${new Date().toISOString()}
               `.trim();
+
+    //const nlpresult = await response.json()
+    
+
+    const mockNLPResult = {
+        subspecialty_rankings: [
+          { name: "General OB/GYN", score: 85 },
+          { name: "Maternal-Fetal Medicine", score: 72 },
+          { name: "Urogynecology", score: 45 },
+          { name: "Reproductive Endocrinology", score: 38 },
+          { name: "Minimally Invasive Surgery", score: 25 },
+          { name: "Gynecologic Oncology", score: 15 }
+        ],
+        top_recommendation: "General OB/GYN",
+        risk_level: formData.red_flags && formData.red_flags.length > 0 ? "high" : "medium",
+        clinical_explanation: "Based on the reported symptoms and medical history, initial evaluation by a general OB/GYN specialist is recommended.",
+        triage_data: triageString
+      };
+
+      setResult(mockNLPResult);
+      setStep(4);
+
     } catch (error) {
       console.error("Error analyzing symptoms:", error);
       alert("Error analyzing symptoms. Please try again.");
@@ -639,9 +661,9 @@ export default function Triage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-4xl mb-3 text-blue-800 dark:text-purple-200 font-black">Recommendation Result</CardTitle>
+                        <CardTitle className="text-4xl mb-3 text-blue-800 dark:text-purple-200 font-black">Triage Analysis Results</CardTitle>
                         <p className="text-blue-700 dark:text-purple-300 text-lg font-semibold">
-                          Based on your symptoms and medical history
+                          Subspecialty recommendations based on your symptoms
                         </p>
                       </div>
                       <Badge className={`${getRiskColor(result.risk_level)} px-6 py-3 text-lg font-black shadow-lg`}>
@@ -650,36 +672,64 @@ export default function Triage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-8">
-                    {/* Recommended Specialty */}
+                    {/* Top Recommendation */}
                     <div className="text-center p-10 bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 rounded-3xl text-white shadow-2xl">
-                      <p className="text-base opacity-95 mb-3 font-bold">Recommended Specialty:</p>
-                      <h2 className="text-5xl font-black mb-6 drop-shadow-lg">{result.recommendation}</h2>
+                      <p className="text-base opacity-95 mb-3 font-bold">Top Recommended Specialty:</p>
+                      <h2 className="text-5xl font-black mb-6 drop-shadow-lg">{result.top_recommendation}</h2>
                       <div className="flex items-center justify-center gap-6">
                         <div>
-                          <p className="text-base opacity-95 font-bold">Confidence Score</p>
-                          <p className="text-4xl font-black mt-1">{result.confidence_score}%</p>
+                          <p className="text-base opacity-95 font-bold">Match Score</p>
+                          <p className="text-4xl font-black mt-1">{result.subspecialty_rankings[0].score}%</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Confidence Progress */}
-                    <div>
-                      <div className="flex justify-between mb-3">
-                        <span className="text-base font-black text-blue-900 dark:text-purple-200">Match Confidence</span>
-                        <span className="text-base font-black text-blue-700 dark:text-purple-400">
-                          {result.confidence_score}%
-                        </span>
+                    {/* Subspecialty Rankings Bar Chart */}
+                    <div className="p-8 bg-cyan-100 dark:bg-blue-900 rounded-2xl border-3 border-cyan-300 dark:border-blue-700 shadow-lg">
+                      <h3 className="font-black text-2xl mb-6 flex items-center gap-3 text-cyan-900 dark:text-blue-100">
+                        <Activity className="w-7 h-7" />
+                        Subspecialty Match Analysis
+                      </h3>
+                      <div className="space-y-4">
+                        {result.subspecialty_rankings.map((specialty, index) => (
+                          <div key={specialty.name} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-lg text-cyan-900 dark:text-blue-100">
+                                {index + 1}. {specialty.name}
+                              </span>
+                              <span className="font-black text-xl text-cyan-700 dark:text-blue-300">
+                                {specialty.score}%
+                              </span>
+                            </div>
+                            <div className="relative h-8 bg-cyan-200 dark:bg-blue-950 rounded-full overflow-hidden shadow-inner">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${specialty.score}%` }}
+                                transition={{ duration: 1, delay: index * 0.1 }}
+                                className={`h-full rounded-full ${
+                                  index === 0
+                                    ? 'bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500'
+                                    : index === 1
+                                    ? 'bg-gradient-to-r from-blue-500 to-cyan-400 dark:from-purple-500 dark:to-pink-400'
+                                    : 'bg-gradient-to-r from-blue-400 to-cyan-300 dark:from-purple-400 dark:to-pink-300'
+                                }`}
+                                style={{ 
+                                  boxShadow: index === 0 ? '0 0 20px rgba(59, 130, 246, 0.5)' : 'none' 
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <Progress value={result.confidence_score} className="h-4 bg-blue-200 dark:bg-purple-900" />
                     </div>
 
                     {/* Clinical Explanation */}
-                    <div className="p-8 bg-cyan-100 dark:bg-blue-900 rounded-2xl border-3 border-cyan-300 dark:border-blue-700 shadow-lg">
-                      <h3 className="font-black text-xl mb-4 flex items-center gap-3 text-cyan-900 dark:text-blue-100">
-                        <Activity className="w-6 h-6" />
+                    <div className="p-8 bg-teal-100 dark:bg-rose-900 rounded-2xl border-3 border-teal-300 dark:border-rose-700 shadow-lg">
+                      <h3 className="font-black text-xl mb-4 flex items-center gap-3 text-teal-900 dark:text-rose-100">
+                        <FileText className="w-6 h-6" />
                         Clinical Reasoning
                       </h3>
-                      <p className="text-cyan-800 dark:text-blue-200 leading-relaxed text-lg font-semibold">
+                      <p className="text-teal-800 dark:text-rose-200 leading-relaxed text-lg font-semibold">
                         {result.clinical_explanation}
                       </p>
                     </div>
@@ -719,9 +769,16 @@ export default function Triage() {
                           setFormData({
                             primary_symptoms: "",
                             symptom_details: "",
+                            red_flags: [],
                             medical_history: {
                               is_pregnant: false,
+                              gestational_age: "",
+                              menstrual_cycle: "",
+                              last_menstrual_period: "",
+                              current_medications: "",
+                              allergies: "",
                               previous_surgeries: false,
+                              bleeding_disorder: false,
                               chronic_conditions: []
                             },
                             referral_reason: ""

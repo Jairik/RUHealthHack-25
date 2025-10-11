@@ -1,0 +1,2 @@
+''' Queries for database interactions '''
+

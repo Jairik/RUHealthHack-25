@@ -1,21 +1,27 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Activity, Heart, Moon, Sun, Menu, X, LayoutDashboard, BookOpen, Calendar, User } from "lucide-react";
+import { Home, Activity, Heart, Moon, Sun, Menu, X, LayoutDashboard } from "lucide-react";
 
 export default function Layout({ children, currentPageName }) {
   const [darkMode, setDarkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  
+  // MOCK DATA - User would come from authentication
+  const [user] = useState({
+    full_name: "Agent Smith",
+    email: "agent@fempath.com"
+  });
 
   useEffect(() => {
-    // ✅ Initialize dark mode preference — dark mode is default
+    // PLACEHOLDER: Authentication check would go here
+    // Example: const user = await fetch('/api/auth/me').then(r => r.json());
+    
     const savedMode = localStorage.getItem("darkMode");
     const isDark = savedMode === null ? true : savedMode === "true";
-
     setDarkMode(isDark);
-
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
@@ -27,7 +33,6 @@ export default function Layout({ children, currentPageName }) {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem("darkMode", newDarkMode.toString());
-
     if (newDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
@@ -38,14 +43,12 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: "Home", path: "Home", icon: Home },
     { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
-    { name: "Triage", path: "Triage", icon: Activity },
-    { name: "Cycle Tracker", path: "CycleTracker", icon: Calendar },
-    { name: "Resources", path: "Resources", icon: BookOpen },
-    { name: "Profile", path: "Profile", icon: User },
-
+    { name: "Triage", path: "AgentTriage", icon: Activity },
   ];
 
-  const isActive = (path) => currentPageName === path;
+  const isActive = (path) => {
+    return currentPageName === path;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-blue-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-purple-950 dark:to-gray-900">
@@ -98,17 +101,6 @@ export default function Layout({ children, currentPageName }) {
                 )}
               </Button>
 
-              {/* ADD THIS: Profile Button */}
-              <Link to={createPageUrl("Profile")}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-xl hover:bg-blue-100 dark:hover:bg-purple-900/50 border-2 border-transparent hover:border-blue-300 dark:hover:border-purple-600"
-                >
-                  <User className="w-5 h-5 text-blue-600 dark:text-purple-400" />
-                </Button>
-              </Link>
-
               {/* User Info */}
               {user && (
                 <div className="hidden md:block">
@@ -145,8 +137,8 @@ export default function Layout({ children, currentPageName }) {
           <div className="md:hidden border-t border-blue-200 dark:border-purple-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
             <div className="px-6 py-4 space-y-2">
               {navItems.map((item) => (
-                <Link
-                  key={item.path}
+                <Link 
+                  key={item.path} 
                   to={createPageUrl(item.path)}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -181,7 +173,9 @@ export default function Layout({ children, currentPageName }) {
       </nav>
 
       {/* Main Content */}
-      <main>{children}</main>
+      <main>
+        {children}
+      </main>
 
       {/* Footer */}
       <footer className="mt-auto border-t border-blue-200 dark:border-purple-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
@@ -190,7 +184,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="flex items-center gap-2">
               <Heart className="w-5 h-5 text-blue-500 dark:text-purple-400" />
               <span className="text-sm text-blue-700 dark:text-purple-300 font-medium">
-                © 2025 FemPath - Built for Rutgers Hack Health 2025
+                © 2025 FemPath - Agent Triage System
               </span>
             </div>
             <div className="flex items-center gap-6">

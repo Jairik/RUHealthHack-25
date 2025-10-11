@@ -1,56 +1,194 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import DoctorAvailabilityModal from "../components/dashboard/DoctorAvailabilityModal";
 import { 
-  Activity, AlertTriangle, CheckCircle2, Clock, 
-  TrendingUp, Calendar, FileText, Sparkles 
+  FileText, TrendingUp, Users, Calendar, 
+  Search, ChevronDown, ChevronUp, Sparkles, Send, CheckCircle2, Loader2 
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedCase, setExpandedCase] = useState(null);
+  const [sendingToEpic, setSendingToEpic] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
+  const [triageCases, setTriageCases] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy data so the page renders
-  const triageCases = [];
-  const isLoading = false;
+  useEffect(() => {
+    // PLACEHOLDER: API call would go here
+    // Example: const response = await fetch('/api/triage-cases');
+    // const data = await response.json();
+    
+    // Load mock data from localStorage (simulated database)
+    const loadCases = () => {
+      const storedCases = JSON.parse(localStorage.getItem('triageCases') || '[]');
+      
+      // If no cases exist, create some mock data
+      if (storedCases.length === 0) {
+        const mockCases = [
+          {
+            id: "1",
+            agent_id: "A001",
+            patient_first_name: "Sarah",
+            patient_last_name: "Williams",
+            patient_dob: "1985-03-15",
+            created_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            health_history: ["Endometriosis", "Previous C-section"],
+            conversation_history: [
+              { question: "What is the primary reason for today's call?", answer: "Severe pelvic pain and heavy bleeding" },
+              { question: "How long have you been experiencing these symptoms?", answer: "About 6 months, getting worse" },
+              { question: "Are you currently taking any medications?", answer: "Birth control pills and ibuprofen" }
+            ],
+            final_recommendation: "Minimally Invasive Surgery",
+            confidence_score: 85,
+            recommended_doctor: "Maria Rodriguez",
+            subspecialist_confidences: [
+              { name: "Minimally Invasive Surgery", confidence: 85 },
+              { name: "General OB/GYN", confidence: 60 },
+              { name: "Reproductive Endocrinology", confidence: 45 },
+              { name: "Urogynecology", confidence: 30 },
+              { name: "Gynecologic Oncology", confidence: 20 },
+              { name: "Maternal-Fetal Medicine", confidence: 15 }
+            ],
+            status: "completed",
+            agent_notes: "Patient needs urgent follow-up",
+            sent_to_epic: false
+          },
+          {
+            id: "2",
+            agent_id: "A002",
+            patient_first_name: "Maria",
+            patient_last_name: "Garcia",
+            patient_dob: "1992-07-22",
+            created_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            health_history: ["PCOS", "Gestational diabetes"],
+            conversation_history: [
+              { question: "What is the primary reason for today's call?", answer: "Trying to conceive for 18 months" },
+              { question: "Have you had any fertility testing done?", answer: "Yes, diagnosed with PCOS" },
+              { question: "Are you currently taking any medications?", answer: "Metformin and prenatal vitamins" }
+            ],
+            final_recommendation: "Reproductive Endocrinology",
+            confidence_score: 92,
+            recommended_doctor: "Emily Chen",
+            subspecialist_confidences: [
+              { name: "Reproductive Endocrinology", confidence: 92 },
+              { name: "General OB/GYN", confidence: 55 },
+              { name: "Maternal-Fetal Medicine", confidence: 40 },
+              { name: "Minimally Invasive Surgery", confidence: 25 },
+              { name: "Urogynecology", confidence: 15 },
+              { name: "Gynecologic Oncology", confidence: 10 }
+            ],
+            status: "completed",
+            agent_notes: "Referred to fertility specialist",
+            sent_to_epic: true,
+            epic_sent_date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ];
+        localStorage.setItem('triageCases', JSON.stringify(mockCases));
+        setTriageCases(mockCases);
+      } else {
+        setTriageCases(storedCases);
+      }
+      
+      setLoading(false);
+    };
+
+    loadCases();
+  }, []);
+
+  const handleSendToEpic = async (triageCase) => {
+    if (triageCase.sent_to_epic) {
+      alert("This case has already been sent to Epic");
+      return;
+    }
+
+    const confirmSend = window.confirm(
+      `Send triage case for ${triageCase.patient_first_name} ${triageCase.patient_last_name} to Epic EHR?\n\nThis will transfer all triage data, recommendations, and notes to the patient's medical record.`
+    );
+
+    if (!confirmSend) return;
+
+    setSendingToEpic(triageCase.id);
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    try {
+      // PLACEHOLDER: API call would go here
+      // Example: await fetch(`/api/triage-cases/${triageCase.id}/send-to-epic`, { method: 'POST' });
+      
+      // Update case in localStorage
+      const updatedCase = {
+        ...triageCase,
+        sent_to_epic: true,
+        epic_sent_date: new Date().toISOString()
+      };
+      
+      const updatedCases = triageCases.map(c => 
+        c.id === triageCase.id ? updatedCase : c
+      );
+      
+      localStorage.setItem('triageCases', JSON.stringify(updatedCases));
+      setTriageCases(updatedCases);
+      
+      alert("Successfully sent to Epic EHR!");
+    } catch (error) {
+      console.error("Error sending to Epic:", error);
+      alert("Error sending to Epic. Please try again.");
+    } finally {
+      setSendingToEpic(null);
+    }
+  };
+
+  const handleDoctorClick = (doctor) => {
+    setSelectedDoctor(doctor);
+    setShowDoctorModal(true);
+  };
 
   const stats = {
     total: triageCases.length,
-    completed: triageCases.filter(c => c.status === 'completed' || c.status === 'referred').length,
-    highRisk: triageCases.filter(c => c.risk_level === 'high').length
+    today: triageCases.filter(c => {
+      const caseDate = new Date(c.created_date);
+      const today = new Date();
+      return caseDate.toDateString() === today.toDateString();
+    }).length,
+    thisWeek: triageCases.filter(c => {
+      const caseDate = new Date(c.created_date);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return caseDate >= weekAgo;
+    }).length
   };
 
-  const recentCases = triageCases.slice(0, 5);
+  const filteredCases = triageCases.filter(c => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      c.patient_first_name?.toLowerCase().includes(searchLower) ||
+      c.patient_last_name?.toLowerCase().includes(searchLower) ||
+      c.final_recommendation?.toLowerCase().includes(searchLower) ||
+      c.recommended_doctor?.toLowerCase().includes(searchLower) ||
+      c.agent_id?.toString().includes(searchLower)
+    );
+  });
 
-  const specialtyDistribution = triageCases.reduce((acc, case_) => {
-    acc[case_.recommendation] = (acc[case_.recommendation] || 0) + 1;
-    return acc;
-  }, {});
-
-  const getRiskColor = (level) => {
-    switch(level) {
-      case "high": return "bg-red-200 text-red-900 border-2 border-red-400 dark:bg-red-900 dark:text-red-100 dark:border-red-600";
-      case "medium": return "bg-yellow-200 text-yellow-900 border-2 border-yellow-400 dark:bg-yellow-900 dark:text-yellow-100 dark:border-yellow-600";
-      default: return "bg-green-200 text-green-900 border-2 border-green-400 dark:bg-green-900 dark:text-green-100 dark:border-green-600";
-    }
+  const getConfidenceColor = (confidence) => {
+    if (confidence >= 70) return "bg-green-200 dark:bg-green-900 text-green-900 dark:text-green-100 border-green-400 dark:border-green-600";
+    if (confidence >= 40) return "bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border-yellow-400 dark:border-yellow-600";
+    return "bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100 border-red-400 dark:border-red-600";
   };
 
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'completed': return <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />;
-      case 'referred': return <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
-      case 'reviewed': return <Activity className="w-5 h-5 text-orange-600 dark:text-orange-400" />;
-      default: return <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />;
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-cyan-50 dark:from-gray-950 dark:via-purple-950 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <Activity className="w-16 h-16 text-blue-600 dark:text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-xl font-bold text-blue-800 dark:text-purple-200">Loading your dashboard...</p>
+          <FileText className="w-16 h-16 text-blue-600 dark:text-purple-400 animate-pulse mx-auto mb-4" />
+          <p className="text-xl font-bold text-blue-800 dark:text-purple-200">Loading triage cases...</p>
         </div>
       </div>
     );
@@ -69,26 +207,26 @@ export default function Dashboard() {
             <div className="inline-flex items-center gap-2 px-6 py-3 bg-blue-200 dark:bg-purple-900 rounded-full mb-6 border-2 border-blue-300 dark:border-purple-700">
               <TrendingUp className="w-5 h-5 text-blue-700 dark:text-purple-300" />
               <span className="text-sm font-bold text-blue-900 dark:text-purple-200">
-                Your Health Dashboard
+                Triage Dashboard
               </span>
             </div>
             
             <h1 className="text-5xl lg:text-6xl font-black mb-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 dark:from-purple-400 dark:via-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
-              Welcome back, {user?.full_name || 'User'}
+              Triage Case History
             </h1>
             
             <p className="text-xl text-blue-700 dark:text-purple-300 font-semibold">
-              Here's an overview of your health journey with FemPath
+              View and manage all completed triage conversations
             </p>
           </motion.div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {[
-            { label: "Total Triages", value: stats.total, icon: FileText, gradient: "from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500" },
-            { label: "Completed", value: stats.completed, icon: CheckCircle2, gradient: "from-teal-500 to-green-400 dark:from-rose-600 dark:to-orange-500" },
-            { label: "High Priority", value: stats.highRisk, icon: AlertTriangle, gradient: "from-orange-500 to-red-400 dark:from-orange-600 dark:to-red-500" }
+            { label: "Total Cases", value: stats.total, icon: FileText, gradient: "from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500" },
+            { label: "Cases Today", value: stats.today, icon: Calendar, gradient: "from-cyan-500 to-teal-400 dark:from-pink-600 dark:to-rose-500" },
+            { label: "This Week", value: stats.thisWeek, icon: TrendingUp, gradient: "from-teal-500 to-green-400 dark:from-rose-600 dark:to-orange-500" }
           ].map((stat, index) => (
             <motion.div
               key={index}
@@ -96,131 +234,337 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <div className="border-4 border-blue-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-gray-900 hover:scale-105 transition-all rounded-xl">
-                <div className="p-6">
+              <Card className="border-4 border-blue-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-gray-900 hover:scale-105 transition-all">
+                <CardContent className="p-6">
                   <div className={`w-14 h-14 bg-gradient-to-r ${stat.gradient} rounded-2xl flex items-center justify-center mb-4 shadow-xl`}>
                     <stat.icon className="w-7 h-7 text-white" />
                   </div>
-                  <div className="text-4xl font-black text-blue-800 dark:text-purple-200 mb-2">{stat.value}</div>
-                  <div className="text-sm font-bold text-blue-600 dark:text-purple-400">{stat.label}</div>
-                </div>
-              </div>
+                  <div className="text-4xl font-black text-blue-800 dark:text-purple-200 mb-2">
+                    {stat.value}
+                  </div>
+                  <div className="text-sm font-bold text-blue-600 dark:text-purple-400">
+                    {stat.label}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 mb-12">
-          {/* Recent Triage Cases */}
-          <div className="lg:col-span-2">
-            <div className="border-4 border-blue-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-gray-900 rounded-xl">
-              <div className="p-6">
-                <div className="flex items-center gap-3 text-blue-800 dark:text-purple-200 text-2xl font-black mb-4">
-                  <Activity className="w-7 h-7" />
-                  Recent Triage Cases
-                </div>
-                {recentCases.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="w-16 h-16 text-blue-300 dark:text-purple-700 mx-auto mb-4" />
-                    <p className="text-lg font-bold text-blue-800 dark:text-purple-200 mb-2">
-                      No triage cases yet
-                    </p>
-                    <p className="text-blue-600 dark:text-purple-400 mb-6">
-                      Start your first triage to get personalized recommendations
-                    </p>
-                    <Link to={createPageUrl("Triage")}>
-                      <button className="bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 hover:scale-105 shadow-xl text-white font-bold px-6 py-3 rounded">
-                        <Activity className="w-5 h-5 mr-2 inline-block" />
-                        Start Triage
-                      </button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {recentCases.map((case_, index) => (
-                      <motion.div key={case_.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }} className="p-5 bg-blue-50 dark:bg-purple-900/30 rounded-xl border-2 border-blue-200 dark:border-purple-700 hover:shadow-lg transition-all">
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              {getStatusIcon(case_.status)}
-                              <span className="font-black text-lg text-blue-900 dark:text-purple-100">{case_.recommendation}</span>
-                            </div>
-                            <p className="text-sm text-blue-700 dark:text-purple-300 font-semibold line-clamp-2">{case_.primary_symptoms}</p>
-                          </div>
-                          <span className={`${getRiskColor(case_.risk_level)} font-bold flex-shrink-0 px-2 py-1 text-xs rounded`}>{case_.risk_level?.toUpperCase()}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-blue-600 dark:text-purple-400 font-semibold">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-3 h-3" />
-                            {format(new Date(case_.created_date), 'MMM d, yyyy')}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-3 h-3" />
-                            {case_.confidence_score}% confidence
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
+        {/* Search Bar */}
+        <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900 mb-8">
+          <CardContent className="p-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500 dark:text-purple-400 w-5 h-5" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by patient name, recommendation, doctor, or agent ID..."
+                className="pl-12 text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold h-14"
+              />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Specialty Distribution */}
-          <div>
-            <div className="border-4 border-blue-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-gray-900 rounded-xl p-6">
-              <div className="flex items-center gap-3 text-blue-800 dark:text-purple-200 text-2xl font-black mb-4">
-                <TrendingUp className="w-7 h-7" />
-                Recommendations
-              </div>
-              {Object.keys(specialtyDistribution).length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-blue-700 dark:text-purple-300 font-semibold">No data yet</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {Object.entries(specialtyDistribution).sort(([,a], [,b]) => b - a).map(([specialty, count], index) => (
-                    <motion.div key={specialty} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: index * 0.1 }}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-blue-800 dark:text-purple-200">{specialty}</span>
-                        <span className="bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600 font-bold px-2 py-1 rounded text-xs">{count}</span>
+        {/* Cases List */}
+        <div className="space-y-4">
+          {filteredCases.length === 0 ? (
+            <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900">
+              <CardContent className="p-12 text-center">
+                <FileText className="w-16 h-16 text-blue-300 dark:text-purple-700 mx-auto mb-4" />
+                <p className="text-xl font-bold text-blue-800 dark:text-purple-200 mb-2">
+                  No triage cases found
+                </p>
+                <p className="text-blue-600 dark:text-purple-400">
+                  {searchTerm ? "Try a different search term" : "Complete your first triage to see it here"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <AnimatePresence>
+              {filteredCases.map((case_, index) => (
+                <motion.div
+                  key={case_.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                >
+                  <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900 hover:shadow-2xl transition-all">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2 flex-wrap">
+                            <CardTitle className="text-2xl font-black text-blue-900 dark:text-purple-100">
+                              {case_.patient_first_name} {case_.patient_last_name}
+                            </CardTitle>
+                            <Badge className="bg-teal-200 dark:bg-teal-900 text-teal-900 dark:text-teal-100 border-2 border-teal-400 dark:border-teal-600 px-3 py-1 font-bold">
+                              Agent #{case_.agent_id}
+                            </Badge>
+                            {case_.sent_to_epic && (
+                              <Badge className="bg-green-200 dark:bg-green-900 text-green-900 dark:text-green-100 border-2 border-green-400 dark:border-green-600 px-3 py-1 font-bold">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Sent to Epic
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Badge className="bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600 px-3 py-1 font-bold">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {format(new Date(case_.created_date), 'MMM d, yyyy - h:mm a')}
+                            </Badge>
+                            <Badge className={`${getConfidenceColor(case_.confidence_score)} border-2 px-3 py-1 font-bold`}>
+                              {case_.confidence_score}% Confidence
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => handleSendToEpic(case_)}
+                            disabled={case_.sent_to_epic || sendingToEpic === case_.id}
+                            className={`${
+                              case_.sent_to_epic
+                                ? 'bg-green-600 dark:bg-green-700'
+                                : 'bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 hover:from-indigo-700 hover:to-purple-700'
+                            } text-white font-bold`}
+                          >
+                            {sendingToEpic === case_.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Sending...
+                              </>
+                            ) : case_.sent_to_epic ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                Sent to Epic
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 mr-2" />
+                                Send to Epic
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => setExpandedCase(expandedCase === case_.id ? null : case_.id)}
+                            className="text-blue-600 dark:text-purple-400"
+                          >
+                            {expandedCase === case_.id ? (
+                              <ChevronUp className="w-6 h-6" />
+                            ) : (
+                              <ChevronDown className="w-6 h-6" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                      <div className="h-2 bg-blue-200 dark:bg-purple-900 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${(count / stats.total) * 100}%` }} transition={{ duration: 0.8, delay: index * 0.1 }} className="h-full bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500" />
+                    </CardHeader>
+                    
+                    <CardContent>
+                      {/* Summary */}
+                      <div className="grid md:grid-cols-2 gap-6 mb-4">
+                        <div className="p-4 bg-blue-100 dark:bg-purple-900/30 rounded-xl border-2 border-blue-300 dark:border-purple-700">
+                          <p className="text-sm font-bold text-blue-600 dark:text-purple-400 mb-2">
+                            <Sparkles className="w-3 h-3 inline mr-1" />
+                            Recommendation
+                          </p>
+                          <p className="text-lg font-black text-blue-900 dark:text-purple-100">
+                            {case_.final_recommendation}
+                          </p>
+                        </div>
+                        
+                        <div className="p-4 bg-cyan-100 dark:bg-pink-900/30 rounded-xl border-2 border-cyan-300 dark:border-pink-700">
+                          <p className="text-sm font-bold text-cyan-600 dark:text-pink-400 mb-2">
+                            <Users className="w-3 h-3 inline mr-1" />
+                            Recommended Doctor
+                          </p>
+                          <p className="text-lg font-black text-cyan-900 dark:text-pink-100">
+                            Dr. {case_.recommended_doctor}
+                          </p>
+                        </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Quick Actions */}
-        <div className="border-4 border-blue-400 dark:border-purple-600 shadow-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 dark:from-purple-700 dark:via-pink-600 dark:to-rose-600 text-white rounded-xl">
-          <div className="p-12 text-center">
-            <Sparkles className="w-16 h-16 mx-auto mb-6" />
-            <h2 className="text-4xl font-black mb-4 drop-shadow-lg">Need Medical Guidance?</h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto font-semibold opacity-95">
-              Our AI-powered triage system is ready to help you find the right specialist
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to={createPageUrl("Triage")}>
-                <button className="text-lg px-10 py-6 bg-white text-blue-700 dark:text-purple-700 hover:scale-105 shadow-2xl font-black rounded inline-flex items-center justify-center">
-                  <Activity className="w-5 h-5 mr-2" />
-                  Start New Triage
-                </button>
-              </Link>
-              <Link to={createPageUrl("Resources")}>
-                <button className="text-lg px-10 py-6 bg-white/10 backdrop-blur-xl border-2 border-white hover:bg-white/20 hover:scale-105 text-white font-black rounded inline-flex items-center justify-center">
-                  <FileText className="w-5 h-5 mr-2" />
-                  Browse Resources
-                </button>
-              </Link>
-            </div>
-          </div>
+                      {/* Epic Status */}
+                      {case_.sent_to_epic && case_.epic_sent_date && (
+                        <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-xl border-2 border-green-300 dark:border-green-700">
+                          <p className="text-sm font-semibold text-green-800 dark:text-green-200">
+                            <CheckCircle2 className="w-4 h-4 inline mr-1" />
+                            Sent to Epic EHR on {format(new Date(case_.epic_sent_date), 'MMM d, yyyy - h:mm a')}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Expanded Details */}
+                      <AnimatePresence>
+                        {expandedCase === case_.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="space-y-6 pt-6 border-t-2 border-blue-200 dark:border-purple-800"
+                          >
+                            {/* Health History */}
+                            {case_.health_history && case_.health_history.length > 0 && (
+                              <div>
+                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-3">
+                                  Health History:
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {case_.health_history.map((condition, idx) => (
+                                    <Badge
+                                      key={idx}
+                                      className="bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100 border-2 border-orange-400 dark:border-orange-600 px-3 py-1 font-bold"
+                                    >
+                                      {condition}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Conversation History */}
+                            {case_.conversation_history && case_.conversation_history.length > 0 && (
+                              <div>
+                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-4">
+                                  Conversation ({case_.conversation_history.length} Q&A):
+                                </p>
+                                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                  {case_.conversation_history.map((qa, idx) => (
+                                    <div key={idx} className="space-y-2">
+                                      <div className="p-3 bg-blue-100 dark:bg-purple-900/30 rounded-lg border border-blue-300 dark:border-purple-700">
+                                        <p className="text-xs font-bold text-blue-600 dark:text-purple-400 mb-1">Q{idx + 1}:</p>
+                                        <p className="text-sm font-semibold text-blue-900 dark:text-purple-100">{qa.question}</p>
+                                      </div>
+                                      {qa.answer && (
+                                        <div className="p-3 bg-cyan-100 dark:bg-pink-900/30 rounded-lg border border-cyan-300 dark:border-pink-700 ml-4">
+                                          <p className="text-xs font-bold text-cyan-600 dark:text-pink-400 mb-1">A:</p>
+                                          <p className="text-sm font-semibold text-cyan-900 dark:text-pink-100">{qa.answer}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Subspecialist Confidences */}
+                            {case_.subspecialist_confidences && case_.subspecialist_confidences.length > 0 && (
+                              <div>
+                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-4">
+                                  Final Subspecialist Confidences:
+                                </p>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                  {case_.subspecialist_confidences.map((sub, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-teal-100 dark:bg-rose-900/30 rounded-lg border border-teal-300 dark:border-rose-700">
+                                      <span className="text-sm font-bold text-teal-900 dark:text-rose-100">{sub.name}</span>
+                                      <Badge className={`${getConfidenceColor(sub.confidence)} border font-bold`}>
+                                        {sub.confidence}%
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Doctor Matches - Clickable */}
+                            {case_.recommended_doctor && (
+                              <div>
+                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-4">
+                                  Recommended Doctors (Click to View Availability):
+                                </p>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                  {/* MOCK DATA - Doctor matches */}
+                                  {[
+                                    { 
+                                      name: case_.recommended_doctor.replace("Dr. ", ""), 
+                                      specialty: case_.final_recommendation,
+                                      availability: "Available",
+                                      credentials: "MD, FACOG"
+                                    },
+                                    {
+                                      name: "Emily Chen",
+                                      specialty: case_.subspecialist_confidences?.[1]?.name || "Reproductive Endocrinology",
+                                      availability: "Available",
+                                      credentials: "MD, FACOG"
+                                    },
+                                    {
+                                      name: "Maria Rodriguez",
+                                      specialty: case_.subspecialist_confidences?.[2]?.name || "Minimally Invasive Surgery",
+                                      availability: "Next Week",
+                                      credentials: "DO, FACOG"
+                                    }
+                                  ].map((doctor, docIdx) => (
+                                    <button
+                                      key={docIdx}
+                                      onClick={() => handleDoctorClick(doctor)}
+                                      className="p-4 bg-cyan-100 dark:bg-pink-900/30 rounded-xl border-2 border-cyan-300 dark:border-pink-700 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
+                                    >
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div>
+                                          <Badge className={`${
+                                            docIdx === 0
+                                              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                              : 'bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600'
+                                          } font-black mb-2`}>
+                                            {docIdx === 0 ? "Best Match ⭐" : docIdx === 1 ? "Top Match" : "Second Match"}
+                                          </Badge>
+                                          <p className="text-lg font-black text-cyan-900 dark:text-pink-100">
+                                            Dr. {doctor.name}
+                                          </p>
+                                          <p className="text-sm font-semibold text-cyan-700 dark:text-pink-300">
+                                            {doctor.specialty}
+                                          </p>
+                                        </div>
+                                        <Badge className="bg-teal-200 dark:bg-rose-900 text-teal-900 dark:text-rose-100 border-2 border-teal-400 dark:border-rose-600 font-bold">
+                                          {doctor.availability}
+                                        </Badge>
+                                      </div>
+                                      {doctor.credentials && (
+                                        <p className="text-xs text-cyan-600 dark:text-pink-400 font-semibold">
+                                          {doctor.credentials}
+                                        </p>
+                                      )}
+                                      <p className="text-xs text-cyan-500 dark:text-pink-500 mt-2 font-semibold">
+                                        Click to view availability →
+                                      </p>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Agent Notes */}
+                            {case_.agent_notes && (
+                              <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded-xl border-2 border-yellow-300 dark:border-yellow-700">
+                                <p className="text-sm font-bold text-yellow-800 dark:text-yellow-400 mb-2">
+                                  Agent Notes:
+                                </p>
+                                <p className="text-base font-semibold text-yellow-900 dark:text-yellow-200">
+                                  {case_.agent_notes}
+                                </p>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
         </div>
       </div>
+
+      {/* Doctor Availability Modal */}
+      <DoctorAvailabilityModal
+        doctor={selectedDoctor}
+        isOpen={showDoctorModal}
+        onClose={() => {
+          setShowDoctorModal(false);
+          setSelectedDoctor(null);
+        }}
+      />
     </div>
   );
 }

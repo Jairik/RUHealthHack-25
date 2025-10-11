@@ -1,2 +1,4 @@
 .venv
 /backend/temp_data
+awscliv2.zip
+export_keys.sh

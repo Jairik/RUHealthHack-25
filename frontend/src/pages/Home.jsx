@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Activity, Shield, Sparkles, Brain, Lock } from "lucide-react";
+import { Headphones, Shield, Brain, Lock, TrendingUp, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
@@ -10,32 +10,44 @@ export default function Home() {
   const features = [
     {
       icon: Brain,
-      title: "Smart Triage",
-      description: "AI-powered system recommends the right OB/GYN specialist based on your symptoms",
-      gradient: "from-blue-500 via-cyan-400 to-teal-400 dark:from-purple-600 dark:via-pink-500 dark:to-rose-500"
+      title: "AI-Powered Triage",
+      description: "Intelligent questioning system that adapts based on patient responses to recommend the right OB/GYN subspecialist",
+      gradient: "from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500"
+    },
+    {
+      icon: TrendingUp,
+      title: "Real-Time Confidence",
+      description: "Live confidence scores for all 6 subspecialties updated dynamically as you gather more patient information",
+      gradient: "from-cyan-500 to-teal-400 dark:from-pink-600 dark:to-rose-500"
+    },
+    {
+      icon: Users,
+      title: "Doctor Matching",
+      description: "Automatically matches patients with available specialists based on symptoms, conditions, and urgency",
+      gradient: "from-teal-500 to-green-400 dark:from-rose-600 dark:to-orange-500"
     },
     {
       icon: Shield,
-      title: "HIPAA Compliant",
-      description: "Your health data is encrypted and secure with enterprise-grade protection",
-      gradient: "from-teal-500 via-cyan-500 to-sky-400 dark:from-pink-600 dark:via-rose-500 dark:to-orange-500"
+      title: "Complete Records",
+      description: "Every conversation is saved with full history, recommendations, and notes for compliance and quality assurance",
+      gradient: "from-green-500 to-emerald-400 dark:from-orange-600 dark:to-yellow-500"
     }
   ];
 
   const stats = [
-    { label: "Woman's Health Specialists", value: "20+", icon: Activity },
-    { label: "Subspecialists Available", value: "6", icon: Brain },
-    { label: "Accuracy Rate", value: "97%", icon: Activity },
-    { label: "Secure & Private", value: "100%", icon: Lock }
+    { label: "Subspecialties", value: "6", icon: Brain },
+    { label: "Doctor Network", value: "20+", icon: Users },
+    { label: "Triage Accuracy", value: "97%", icon: TrendingUp },
+    { label: "HIPAA Compliant", value: "100%", icon: Lock }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-cyan-50 dark:from-gray-950 dark:via-purple-950 dark:to-gray-900">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-200 via-cyan-100 to-transparent dark:from-purple-900 dark:via-pink-900 dark:to-transparent opacity-50"></div>
-        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-400 dark:bg-purple-600 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-40 animate-pulse"></div>
-        <div className="absolute top-40 right-10 w-96 h-96 bg-cyan-300 dark:bg-pink-600 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-40 animate-pulse animation-delay-2000"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-cyan-600/10 dark:from-purple-600/20 dark:to-pink-600/20"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 dark:bg-purple-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-30 animate-pulse"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-300 dark:bg-pink-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-30 animate-pulse delay-1000"></div>
         
         <div className="relative max-w-7xl mx-auto px-6 py-24 lg:py-32">
           <motion.div
@@ -44,26 +56,32 @@ export default function Home() {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-blue-200 dark:bg-purple-900 rounded-full mb-8 border-2 border-blue-300 dark:border-purple-700 shadow-lg">
-              <Sparkles className="w-5 h-5 text-blue-700 dark:text-purple-300" />
+            <div className="inline-flex items-center gap-2 px-6 py-3 bg-blue-200 dark:bg-purple-900 rounded-full mb-8 border-2 border-blue-300 dark:border-purple-700">
+              <Headphones className="w-5 h-5 text-blue-700 dark:text-purple-300" />
               <span className="text-sm font-bold text-blue-900 dark:text-purple-200">
-                Rutgers Hack Health 2025 - Women's Health Track
+                Call Center Agent Platform - Rutgers Hack Health 2025
               </span>
             </div>
             
-            <h1 className="text-6xl lg:text-8xl font-black mb-6 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 dark:from-purple-400 dark:via-pink-400 dark:to-rose-400 bg-clip-text text-transparent drop-shadow-2xl">
-              Get the Right Care,<br />Live Your Best Life
+            <h1 className="text-5xl lg:text-7xl font-black mb-6 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 dark:from-purple-400 dark:via-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
+              Intelligent OB/GYN<br />Triage System
             </h1>
             
-            <p className="text-2xl lg:text-3xl text-blue-800 dark:text-purple-200 mb-12 max-w-3xl mx-auto font-semibold">
-              FemPath uses intelligent OB/GYN triage to help you find the right specialist for your needs
+            <p className="text-xl lg:text-2xl text-blue-700 dark:text-purple-300 mb-12 max-w-3xl mx-auto font-semibold">
+              Empower your call center agents with AI-powered triage that connects patients to the right subspecialist every time
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Link to={createPageUrl("Triage")}>
-                <Button size="lg" className="text-xl px-12 py-8 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 dark:from-purple-600 dark:via-pink-500 dark:to-rose-500 hover:scale-105 shadow-2xl hover:shadow-blue-500/50 dark:hover:shadow-purple-500/50 transition-all text-white font-bold">
-                  <Brain className="w-6 h-6 mr-3" />
-                  Start Triage
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to={createPageUrl("AgentTriage")}>
+                <Button size="lg" className="text-lg px-12 py-8 bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 hover:scale-105 shadow-2xl text-white font-black">
+                  <Headphones className="w-6 h-6 mr-3" />
+                  Start Triage Call
+                </Button>
+              </Link>
+              <Link to={createPageUrl("Dashboard")}>
+                <Button size="lg" variant="outline" className="text-lg px-12 py-8 border-3 border-blue-300 dark:border-purple-700 hover:bg-blue-100 dark:hover:bg-purple-900/50 font-black">
+                  <TrendingUp className="w-6 h-6 mr-3" />
+                  View Dashboard
                 </Button>
               </Link>
             </div>
@@ -86,7 +104,7 @@ export default function Home() {
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl">
                     <stat.icon className="w-8 h-8 text-white" />
                   </div>
-                  <div className="text-4xl font-black text-blue-700 dark:text-purple-300 mb-2">
+                  <div className="text-4xl font-black text-blue-800 dark:text-purple-200 mb-2">
                     {stat.value}
                   </div>
                   <div className="text-sm font-bold text-blue-600 dark:text-purple-400">
@@ -108,10 +126,10 @@ export default function Home() {
           className="text-center mb-16"
         >
           <h2 className="text-5xl lg:text-6xl font-black mb-6 text-blue-800 dark:text-purple-200">
-            Everything You Need
+            Everything Your Agents Need
           </h2>
           <p className="text-2xl text-blue-700 dark:text-purple-300 font-semibold">
-            Comprehensive tools for women's health
+            Streamline patient triage with intelligent automation
           </p>
         </motion.div>
 
@@ -150,14 +168,15 @@ export default function Home() {
             
             <div className="relative z-10 text-center">
               <h2 className="text-5xl lg:text-6xl font-black mb-6 drop-shadow-2xl">
-                Ready to Take Control of Your Health?
+                Ready to Transform Your Call Center?
               </h2>
               <p className="text-2xl mb-12 max-w-2xl mx-auto font-semibold opacity-95">
-                Join thousands of women who trust FemPath for personalized healthcare guidance
+                Start triaging patients with AI-powered precision today
               </p>
-              <Link to={createPageUrl("Triage")}>
+              <Link to={createPageUrl("AgentTriage")}>
                 <Button size="lg" className="text-xl px-12 py-8 bg-white text-blue-700 dark:text-purple-700 hover:scale-105 shadow-2xl font-black">
-                  Get Started Today
+                  <Headphones className="w-6 h-6 mr-3" />
+                  Begin Triage Now
                 </Button>
               </Link>
             </div>

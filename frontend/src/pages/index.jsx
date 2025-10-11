@@ -2,17 +2,11 @@ import Layout from "./Layout.jsx";
 
 import Home from "./Home";
 
-import Triage from "./Triage";
-
 import Template from "./Template";
-
-import Resources from "./Resources";
 
 import Dashboard from "./Dashboard";
 
-import CycleTracker from "./CycleTracker";
-
-import Profile from "./Profile"
+import AgentTriage from "./AgentTriage";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -20,17 +14,11 @@ const PAGES = {
     
     Home: Home,
     
-    Triage: Triage,
-    
     Template: Template,
-    
-    Resources: Resources,
     
     Dashboard: Dashboard,
     
-    CycleTracker: CycleTracker,
-
-    Profile: Profile,
+    AgentTriage: AgentTriage,
     
 }
 
@@ -61,17 +49,11 @@ function PagesContent() {
                 
                 <Route path="/Home" element={<Home />} />
                 
-                <Route path="/Triage" element={<Triage />} />
-                
                 <Route path="/Template" element={<Template />} />
-                
-                <Route path="/Resources" element={<Resources />} />
                 
                 <Route path="/Dashboard" element={<Dashboard />} />
                 
-                <Route path="/CycleTracker" element={<CycleTracker />} />
-
-                <Route path="/Profile" element={<Profile />} />
+                <Route path="/AgentTriage" element={<AgentTriage />} />
                 
             </Routes>
         </Layout>

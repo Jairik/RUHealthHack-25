@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Tuple, Union
 import numpy as np
-from joblib import load
+from joblib import load, dump
 from scipy.sparse import hstack
 
 class ConditionSoftmaxPredictor:
@@ -71,16 +71,118 @@ def load_and_predict_softmax(model_dir: Union[str, Path], user_input: str, k: in
         "label_map": predictor.label_map         # index -> condition_ID
     }
 
+
+def power_transform(
+    arr,
+    alpha   :   float   =   5
+):
+    t_sum = 0
+    for i in range(len(arr)):
+        t_sum += arr[i] ** alpha
+    
+    out = np.zeros(len(arr), dtype=np.float32)
+
+    for i in range(len(out)):
+        out[i] = arr[i] ** alpha / t_sum
+
+    return out
+    
 def inference(
-    user_text = "i can't hold my pee i have increased pressure in lower abdomen", 
-    k=6
+    user_text = "", 
+    first_call=False,
+    last_ans=False
 ):
     model_dir = "./model"
-    out = load_and_predict_softmax(model_dir, user_text, k=k)
+
+    if(first_call):
+        dump("",'./model/work.str')
+        dump([],'./model/null.idx')
+        dump([],'./model/sclr.idx')
+        dump([],'./model/dont.ask')
+        dump(-1,'./model/last.qid')
+
+    work_str = load('./model/work.str')
+    work_str += user_text
+    
+    null_idx = load('./model/null.idx')
+    sclr_idx = load('./model/sclr.idx')
+    dont_ask = load('./model/dont.ask')
+    last_qid = load('./model/last.qid')
+
+    out = load_and_predict_softmax(model_dir, work_str, k=6)
+    
+    #for saving progress, need to collect
+    #null.idx variable from long term storage
+    #sclr.idx variable from long term storage
+    #these variables is reinitialized upon first_call and appends once per NO/FALSE on question
+
+    print(f"loaded last_qid: {last_qid}")
 
     sspec_full = pd.read_csv('./data/symptoms_full.csv').values[:, 1:3]
-    sspec_map = sspec_full[:, 0]
+    sspec_map = sspec_full[:, 0].astype(np.int64)
     cond_map = sspec_full[:, 1]
+
+    if(last_qid>-1):
+        if(last_ans==True):
+            #here for inference and dump
+            sclr_idx.append(last_qid)
+            dont_ask.append(last_qid)
+
+        else:
+            #here for inference and dump
+            null_idx.append(last_qid)
+            dont_ask.append(last_qid)
+
+    if(len(sclr_idx)>0):
+        #here for inference
+        sclr_vals = pd.read_csv('./data/symptoms_full.csv').values[sclr_idx, 9].astype(np.float32)
+        out['probs'][sclr_idx] *= sclr_vals
+
+    if(len(null_idx)>0):
+        #nullify invalid ones
+        out['probs'][null_idx] = 0
+    
+    if(len(null_idx)+len(sclr_idx)>0):
+        #need to renormalize to sum one
+        out['probs'] = out['probs']/np.sum(out['probs'])
+
+
+    #need to dump updated values
+    dump(null_idx,'./model/null.idx')
+    dump(sclr_idx,'./model/sclr.idx')
+    dump(dont_ask,'./model/dont.ask')
+    dump(work_str,'./model/work.str')
+
+    #need to solve for highest proba outside strongest sspec aggregation        
+    mean_by_sspec = np.bincount(sspec_map, weights=out["probs"])
+    print(mean_by_sspec)
+
+    if(first_call==False):
+        probs  = np.asarray(out["probs"], dtype=float)         # shape (N,)
+        labels = np.asarray(sspec_map)                         # shape (N,)
+        # Factorize labels (works for int/str/object; contiguous 0..U-1 codes)
+        uniq, inv = np.unique(labels, return_inverse=True)     # inv: shape (N,), ints
+        # 1) Sum probs per aggregation (group)
+        group_sums = np.bincount(inv, weights=probs)           # shape (U,)
+        best_group_code = int(np.argmax(group_sums))           # the highest-scoring aggregation
+        # 2) Build mask: NOT in best group, and NOT in dont_ask
+        N = probs.shape[0]
+        mask = (inv != best_group_code)
+        dont_ask = np.asarray(dont_ask, dtype=np.intp)
+        dont_ask = dont_ask[(dont_ask >= 0) & (dont_ask < N)]  # safety against OOB
+        mask[dont_ask] = False
+        # Option A: single pass (fill excluded with -inf)
+        next_qid = int(np.argmax(np.where(mask, probs, -np.inf)))
+        #then we will call
+        dump(next_qid, './model/last.qid')
+
+        question = pd.read_csv('./data/symptoms_full.csv').values[next_qid, 8]
+    
+    else:
+        question = 'Q_INIT'
+
+    #to solve for best question we need to group condition probabilities into subspecialties 
+    #then we need to find the highest probability not in most confident aggregation
 
     topk_cond = [{"condition":cond_map[i[0]],"condition_results":round(i[1], 4)} for i in out['topk']]
 
@@ -136,22 +238,8 @@ def inference(
     ret = {
         "subspecialty_results": results,
         "doctor_results":doc_results,
-        "condition_results":topk_cond
+        "condition_results":topk_cond,
+        "question":question
     }
+
     return ret
-
-def power_transform(
-    arr,
-    alpha   :   float   =   5
-):
-    t_sum = 0
-    for i in range(len(arr)):
-        t_sum += arr[i] ** alpha
-    
-    out = np.zeros(len(arr), dtype=np.float32)
-
-    for i in range(len(out)):
-        out[i] = arr[i] ** alpha / t_sum
-
-    return out
-    

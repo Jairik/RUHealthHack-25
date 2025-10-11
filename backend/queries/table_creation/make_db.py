@@ -1,20 +1,20 @@
 """
-This script creates the necessary tables in the RDS database using the RDS Data API.
+Creates your database tables in Aurora Serverless v2 using the AWS RDS Data API.
+
+Requirements:
+- AWS CLI credentials configured (aws configure)
+- Aurora cluster with Data API enabled
 """
 
 import boto3
-import json
-from dotenv import load_dotenv
-import os
-from pathlib import Path
 from AWS_connect import get_rds_client, get_envs
 
-# Get the client from AWS_connect
+# Get RDS Data API client
 rds_data = get_rds_client()
 DB_CLUSTER_ARN, DB_SECRET_ARN, DB_NAME = get_envs()
-print(rds_data)
+print("RDS client:", rds_data)
 
-#Helper function to execute SQL
+# Helper function to execute SQL
 def execute_sql(sql: str):
     """Executes a SQL statement via RDS Data API."""
     print(f"Running SQL:\n{sql}\n{'-'*50}")
@@ -101,8 +101,8 @@ ddl_statements = [
 
 for name, sql in ddl_statements:
     try:
-        execute_sql(sql)  # <— THIS is what actually creates the table
+        execute_sql(sql)
         print(f"OK: {name} created or already exists.")
     except Exception as e:
         print(f"FAILED creating {name}: {e}")
-        raise  # stop if something upstream fails
+        raise

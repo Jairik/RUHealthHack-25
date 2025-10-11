@@ -282,7 +282,7 @@ export default function QuestionPanel({ currentQuestion, questionHistory, onSubm
           <div className="space-y-4">
             <div className="p-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-xl text-white">
               <p className="text-sm font-bold mb-2 opacity-90">
-                {isFirstQuestion ? 'Initial Question:' : 'Current Question:'}
+                {isFirstQuestion ? 'Initial Questions:' : 'Current Question:'}
               </p>
               <p className="text-lg font-black">{currentQuestion}</p>
             </div>

@@ -7,7 +7,10 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL + '/api') || "http://localhos
 *   question: string - the current question being asked
 *   response: string - the user's response to the current question
 * Returns:
-*   JSON object with the next question and any additional data or NULL if there are no more questions
+*   JSON object with:
+        - The next question to ask (string)
+        - A dict of the current confidence levels for specialists
+        - A dict for confidence 
 */
 async function getNextQuestion(question, response){
     const url = `${API_BASE_URL}/next_question`;
@@ -71,7 +74,7 @@ async function getDoB(firstname, lastname) {
 *   lastname: string - the user's last name
 *   dob: string - the user's date of birth
 * Returns:
-*   JSON object with the provider name, or NULL if not found
+*   JSON object with the provider name and patient history, or NULL if not found
 */
 async function getProvider(firstname, lastname, dob) {
     const url = `${API_BASE_URL}/`;
@@ -101,6 +104,44 @@ async function submitConversation(conversation) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify(body)
+    });
+    return res.json();
+}
+
+/* Fetches a provider's details by their name
+* Parameters:
+*   name: string of the provider
+* Returns:
+*   JSON object with provider scheduling details
+*/
+async function getProviderSchedule(pName){
+    const url = `${API_BASE_URL}/submit_conversation`;
+    const body = { pname };
+    const res = await fetch(url, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+    });
+    return res.json();
+}
+
+/* Fetches all results of a db query, given a fuzzy-search parameter
+* Parameters:
+*   search: string for input in the search bar
+* Returns:
+*   JSON object containing all triage log results
+*/
+async function getAllTriageLogs(search = null){
+    const url = `${API_BASE_URL}/submit_conversation`;
+    const body = { pname };
+    const res = await fetch(url, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
     });
     return res.json();
 }

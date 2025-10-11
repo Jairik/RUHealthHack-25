@@ -22,10 +22,13 @@ export default function Triage() {
     red_flags: [],
     medical_history: {
       is_pregnant: false,
+      menstrual_cycle: "",
+      current_medications: "",
+      allergies: "",
+      last_menstrual_period: "",
       previous_surgeries: false,
       chronic_conditions: []
-    },
-    referral_reason: ""
+    }
   });
 
   const commonSymptoms = [
@@ -36,7 +39,7 @@ export default function Triage() {
 
   // Add redFlags array after commonSymptoms:
   const redFlags = [
-    "Severe pain (8-10/10)",
+    "Labor pain",
     "Heavy bleeding (>1 pad/hour)",
     "No fetal movement",
     "Chest pain/severe shortness of breath",
@@ -106,52 +109,100 @@ export default function Triage() {
     setLoading(true);
     
     try {
-      const prompt = `You are a medical triage AI for OB/GYN care. Based on the following patient information, recommend ONE of these subspecialties and provide a confidence score (0-100) and clinical explanation:
+     const triageString = `
+        PATIENT TRIAGE INFORMATION
+        ==========================
 
-Subspecialties:
-- Maternal-Fetal Medicine (high-risk pregnancy)
-- Urogynecology (pelvic floor disorders, incontinence)
-- Minimally Invasive Surgery (fibroids, endometriosis requiring surgery)
-- Reproductive Endocrinology (fertility, hormonal issues)
-- Gynecologic Oncology (suspected cancer, abnormal cells)
-- General OB/GYN (routine care, common issues)
+        PRIMARY SYMPTOMS:
+        ${formData.primary_symptoms}
 
-Patient Information:
-Primary Symptoms: ${formData.primary_symptoms}
-Details: ${formData.symptom_details}
-Red Flag: ${formData.red_flags}
-Pregnant: ${formData.medical_history.is_pregnant ? "Yes" : "No"}
-Previous Surgeries: ${formData.medical_history.previous_surgeries ? "Yes" : "No"}
-Chronic Conditions: ${formData.medical_history.chronic_conditions.join(", ") || "None"}
-Referral Reason: ${formData.referral_reason}
+        SYMPTOM DETAILS:
+        ${formData.symptom_details || 'Not provided'}
 
-Determine risk level (low/medium/high) based on symptom severity.`;
+        RED FLAGS:
+        ${formData.red_flags && formData.red_flags.length > 0 ? formData.red_flags.join('; ') : 'None reported'}
 
-      // const aiResponse = await base44.integrations.Core.InvokeLLM({
-      //   prompt,
-      //   response_json_schema: {
-      //     type: "object",
-      //     properties: {
-      //       recommendation: { type: "string" },
-      //       confidence_score: { type: "number" },
-      //       clinical_explanation: { type: "string" },
-      //       risk_level: { type: "string" }
-      //     }
-      //   }
-      // });
+        PREGNANCY STATUS:
+        ${formData.medical_history.is_pregnant ? `Yes - ${formData.medical_history.gestational_age} weeks` : 'Not pregnant'}
 
-      // const user = await base44.auth.me();
-      
-      // const triageData = {
-      //   user_email: user.email,
-      //   ...formData,
-      //   ...aiResponse,
-      //   status: "pending"
-      // };
+        MENSTRUAL HISTORY:
+        Cycle: ${formData.medical_history.menstrual_cycle || 'Not specified'}
+        Last Menstrual Period: ${formData.medical_history.last_menstrual_period || 'Not provided'}
 
-      // const savedCase = await base44.entities.TriageCase.create(triageData);
-      // setResult(savedCase);
-      // setStep(4);
+        MEDICAL HISTORY:
+        Current Medications: ${formData.medical_history.current_medications || 'None reported'}
+        Allergies: ${formData.medical_history.allergies || 'None reported'}
+        Previous OB/GYN Surgeries: ${formData.medical_history.previous_surgeries ? 'Yes' : 'No'}
+        Chronic Conditions: ${formData.medical_history.chronic_conditions.length > 0 ? formData.medical_history.chronic_conditions.join(', ') : 'None reported'}
+
+        ADDITIONAL NOTES:
+        ${formData.referral_reason || 'None provided'}
+
+        TRIAGE TIMESTAMP: ${new Date().toISOString()}
+              `.trim();
+
+    //const nlpresult = await response.json()
+    
+
+    const mockNLPResult = {
+        subspecialty_rankings: [
+          { name: "General OB/GYN", score: 85 },
+          { name: "Maternal-Fetal Medicine", score: 72 },
+          { name: "Urogynecology", score: 45 },
+          { name: "Reproductive Endocrinology", score: 38 },
+          { name: "Minimally Invasive Surgery", score: 25 },
+          { name: "Gynecologic Oncology", score: 15 }
+        ],
+        top_recommendation: "General OB/GYN",
+        risk_level: formData.red_flags && formData.red_flags.length > 0 ? "high" : "medium",
+        clinical_explanation: "Based on the reported symptoms and medical history, initial evaluation by a general OB/GYN specialist is recommended.",
+        algorithm_version: "v1.2.3-mock",
+        model_name: "obgyn-triage-nlp-mock",
+        processing_timestamp: new Date().toISOString(),
+        triage_data: triageString
+      };
+
+      //Mock Audit Entry
+      const auditLogEntry = {
+        // Unique identifiers
+        triage_id: `TRIAGE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        
+        // Input data
+        input_data: {
+          raw_form_data: formData,
+          triage_text: triageString,
+          red_flags_present: formData.red_flags && formData.red_flags.length > 0,
+          red_flags_list: formData.red_flags || []
+        },
+        
+        // Algorithm/Model information
+        algorithm_info: {
+          version: mockNLPResult.algorithm_version,
+          model_name: mockNLPResult.model_name,
+          processing_timestamp: mockNLPResult.processing_timestamp
+        },
+        
+        // Output/Recommendation
+        recommendation: {
+          top_specialty: mockNLPResult.top_recommendation,
+          risk_level: mockNLPResult.risk_level,
+          all_rankings: mockNLPResult.subspecialty_rankings,
+          clinical_explanation: mockNLPResult.clinical_explanation,
+          confidence_score: mockNLPResult.subspecialty_rankings[0].score
+        },
+        
+        // Metadata
+        metadata: {
+          user_agent: navigator.userAgent,
+          session_id: 'MOCK-SESSION-' + Math.random().toString(36).substr(2, 9),
+          form_completion_time_ms: 45000 // Mock: 45 seconds
+        }
+      };
+
+      setResult(mockNLPResult);
+      setStep(4);
+
     } catch (error) {
       console.error("Error analyzing symptoms:", error);
       alert("Error analyzing symptoms. Please try again.");
@@ -255,49 +306,113 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                     />
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        formData.medical_history.is_pregnant
-                          ? "border-4 border-blue-600 dark:border-purple-500 bg-blue-100 dark:bg-purple-900 scale-105 shadow-xl"
-                          : "border-3 border-blue-300 dark:border-purple-700 bg-white dark:bg-gray-950 hover:scale-105 hover:shadow-lg"
-                      }`}
-                      onClick={() => setFormData({
-                        ...formData,
-                        medical_history: {
-                          ...formData.medical_history,
-                          is_pregnant: !formData.medical_history.is_pregnant
-                        }
-                      })}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Currently Pregnant?</span>
-                          {formData.medical_history.is_pregnant && (
-                            <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <div className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <Card
+                        className={`cursor-pointer transition-all ${
+                          formData.medical_history.is_pregnant
+                            ? "border-4 border-blue-600 dark:border-purple-500 bg-blue-100 dark:bg-purple-900 scale-105 shadow-xl"
+                            : "border-3 border-blue-300 dark:border-purple-700 bg-white dark:bg-gray-950 hover:scale-105 hover:shadow-lg"
+                        }`}
+                        onClick={() => setFormData({
+                          ...formData,
+                          medical_history: {
+                            ...formData.medical_history,
+                            is_pregnant: !formData.medical_history.is_pregnant
+                          }
+                        })}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-lg text-blue-900 dark:text-purple-200">Currently Pregnant?</span>
+                            {formData.medical_history.is_pregnant && (
+                              <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
 
-                    {formData.medical_history.is_pregnant && (
-                      <div>
-                        <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
-                          Weeks Pregnant:
-                        </label>
-                        <Input
-                          type="number"
-                          value={formData.medical_history.gestational_age}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            medical_history: {
-                              ...formData.medical_history,
-                              gestational_age: e.target.value
-                            }
-                          })}
-                          placeholder="Enter weeks"
-                          className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
-                        />
+                      {formData.medical_history.is_pregnant && (
+                        <div>
+                          <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                            Weeks Pregnant:
+                          </label>
+                          <Input
+                            type="number"
+                            value={formData.medical_history.gestational_age}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              medical_history: {
+                                ...formData.medical_history,
+                                gestational_age: e.target.value
+                              }
+                            })}
+                            placeholder="Enter weeks"
+                            className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {!formData.medical_history.is_pregnant && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                            Menstrual Cycle:
+                          </label>
+                          <div className="flex gap-4">
+                            <Badge
+                              className={`cursor-pointer px-6 py-3 text-base font-bold transition-all flex-1 justify-center ${
+                                formData.medical_history.menstrual_cycle === "regular"
+                                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 text-white border-0 shadow-lg scale-105"
+                                  : "bg-blue-100 dark:bg-purple-900 text-blue-800 dark:text-purple-200 border-2 border-blue-400 dark:border-purple-600 hover:scale-105"
+                              }`}
+                              onClick={() => setFormData({
+                                ...formData,
+                                medical_history: {
+                                  ...formData.medical_history,
+                                  menstrual_cycle: "regular"
+                                }
+                              })}
+                            >
+                              Regular
+                            </Badge>
+                            <Badge
+                              className={`cursor-pointer px-6 py-3 text-base font-bold transition-all flex-1 justify-center ${
+                                formData.medical_history.menstrual_cycle === "irregular"
+                                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 text-white border-0 shadow-lg scale-105"
+                                  : "bg-blue-100 dark:bg-purple-900 text-blue-800 dark:text-purple-200 border-2 border-blue-400 dark:border-purple-600 hover:scale-105"
+                              }`}
+                              onClick={() => setFormData({
+                                ...formData,
+                                medical_history: {
+                                  ...formData.medical_history,
+                                  menstrual_cycle: "irregular"
+                                }
+                              })}
+                            >
+                              Irregular
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                            Last Menstrual Period (LMP):
+                          </label>
+                          <Input
+                            type="date"
+                            value={formData.medical_history.last_menstrual_period}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              medical_history: {
+                                ...formData.medical_history,
+                                last_menstrual_period: e.target.value
+                              }
+                            })}
+                            className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -305,7 +420,7 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                   <div>
                     <label className="block text-base font-bold mb-4 text-red-800 dark:text-red-300 flex items-center gap-2">
                       <AlertTriangle className="w-5 h-5" />
-                      RED FLAGS - Select if present (requires immediate attention):
+                      Select if present:
                     </label>
                     <div className="flex flex-wrap gap-3">
                       {redFlags.map((flag) => (
@@ -353,38 +468,50 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500 rounded-3xl flex items-center justify-center shadow-xl">
                       <FileText className="w-8 h-8 text-white" />
                     </div>
-                    Medical History
+                    Quick Medical History
                   </CardTitle>
                   <p className="text-blue-700 dark:text-purple-300 mt-3 text-lg font-semibold">
-                    Help us understand your medical background
+                    Essential information for triage assessment
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-8">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        formData.medical_history.is_pregnant
-                          ? "border-4 border-blue-600 dark:border-purple-500 bg-blue-100 dark:bg-purple-900 scale-105 shadow-xl"
-                          : "border-3 border-blue-300 dark:border-purple-700 bg-white dark:bg-gray-950 hover:scale-105 hover:shadow-lg"
-                      }`}
-                      onClick={() => setFormData({
+                  <div>
+                    <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                      Current Medications:
+                    </label>
+                    <Input
+                      value={formData.medical_history.current_medications}
+                      onChange={(e) => setFormData({
                         ...formData,
                         medical_history: {
                           ...formData.medical_history,
-                          is_pregnant: !formData.medical_history.is_pregnant
+                          current_medications: e.target.value
                         }
                       })}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Currently Pregnant</span>
-                          {formData.medical_history.is_pregnant && (
-                            <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                      placeholder="List any medications you're currently taking"
+                      className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                    />
+                  </div>
 
+                  <div>
+                    <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                      Known Allergies:
+                    </label>
+                    <Input
+                      value={formData.medical_history.allergies}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        medical_history: {
+                          ...formData.medical_history,
+                          allergies: e.target.value
+                        }
+                      })}
+                      placeholder="Medications, foods, or other allergies"
+                      className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
                     <Card
                       className={`cursor-pointer transition-all ${
                         formData.medical_history.previous_surgeries
@@ -401,7 +528,7 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                     >
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
-                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Previous Surgeries</span>
+                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Previous OB/GYN Surgeries</span>
                           {formData.medical_history.previous_surgeries && (
                             <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
                           )}
@@ -412,7 +539,7 @@ Determine risk level (low/medium/high) based on symptom severity.`;
 
                   <div>
                     <label className="block text-base font-bold mb-4 text-blue-800 dark:text-purple-200">
-                      Chronic Conditions (select all that apply):
+                      Relevant Medical Conditions (select all that apply):
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {chronicConditions.map((condition) => (
@@ -433,13 +560,13 @@ Determine risk level (low/medium/high) based on symptom severity.`;
 
                   <div>
                     <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
-                      Reason for Seeking Specialist:
+                      Additional Notes (Optional):
                     </label>
                     <Textarea
                       value={formData.referral_reason}
                       onChange={(e) => setFormData({...formData, referral_reason: e.target.value})}
-                      placeholder="Why are you seeking a specialist referral today?"
-                      rows={4}
+                      placeholder="Any other relevant medical information?"
+                      rows={3}
                       className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
                     />
                   </div>
@@ -499,33 +626,70 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                       </div>
                     )}
 
+                    {formData.red_flags && formData.red_flags.length > 0 && (
+                      <div className="p-6 bg-red-100 dark:bg-red-900 rounded-2xl border-3 border-red-400 dark:border-red-700">
+                        <h3 className="font-black text-xl mb-3 text-red-900 dark:text-red-100 flex items-center gap-2">
+                          <AlertTriangle className="w-6 h-6" />
+                          Red Flags Reported
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.red_flags.map(flag => (
+                            <Badge key={flag} className="bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100 border-2 border-red-400 dark:border-red-600 px-4 py-2 font-bold text-base">
+                              {flag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="p-6 bg-teal-100 dark:bg-rose-900 rounded-2xl border-3 border-teal-300 dark:border-rose-700">
-                      <h3 className="font-black text-xl mb-4 text-teal-900 dark:text-rose-100">Medical History</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {formData.medical_history.is_pregnant && (
-                          <Badge className="bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600 px-4 py-2 font-bold">
-                            Currently Pregnant
-                          </Badge>
+                      <h3 className="font-black text-xl mb-4 text-teal-900 dark:text-rose-100">Pregnancy & Menstrual Status</h3>
+                      <div className="space-y-2 text-teal-800 dark:text-rose-200 text-lg font-semibold">
+                        {formData.medical_history.is_pregnant ? (
+                          <>
+                            <p>• Currently Pregnant: Yes</p>
+                            {formData.medical_history.gestational_age && (
+                              <p>• Gestational Age: {formData.medical_history.gestational_age} weeks</p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p>• Currently Pregnant: No</p>
+                            {formData.medical_history.menstrual_cycle && (
+                              <p>• Menstrual Cycle: {formData.medical_history.menstrual_cycle}</p>
+                            )}
+                            {formData.medical_history.last_menstrual_period && (
+                              <p>• Last Menstrual Period: {formData.medical_history.last_menstrual_period}</p>
+                            )}
+                          </>
                         )}
-                        {formData.medical_history.previous_surgeries && (
-                          <Badge className="bg-cyan-200 dark:bg-pink-900 text-cyan-900 dark:text-pink-100 border-2 border-cyan-400 dark:border-pink-600 px-4 py-2 font-bold">
-                            Previous Surgeries
-                          </Badge>
-                        )}
-                        {formData.medical_history.chronic_conditions.map(condition => (
-                          <Badge key={condition} className="bg-teal-200 dark:bg-rose-900 text-teal-900 dark:text-rose-100 border-2 border-teal-400 dark:border-rose-600 px-4 py-2 font-bold">
-                            {condition}
-                          </Badge>
-                        ))}
                       </div>
                     </div>
 
-                    {formData.referral_reason && (
-                      <div className="p-6 bg-sky-100 dark:bg-orange-900 rounded-2xl border-3 border-sky-300 dark:border-orange-700">
-                        <h3 className="font-black text-xl mb-3 text-sky-900 dark:text-orange-100">Referral Reason</h3>
-                        <p className="text-sky-800 dark:text-orange-200 text-lg font-semibold">{formData.referral_reason}</p>
+                    <div className="p-6 bg-sky-100 dark:bg-indigo-900 rounded-2xl border-3 border-sky-300 dark:border-indigo-700">
+                      <h3 className="font-black text-xl mb-4 text-sky-900 dark:text-indigo-100">Medical History</h3>
+                      <div className="space-y-2 text-sky-800 dark:text-indigo-200 text-lg font-semibold">
+                        {formData.medical_history.current_medications && (
+                          <p>• Current Medications: {formData.medical_history.current_medications}</p>
+                        )}
+                        {formData.medical_history.allergies && (
+                          <p>• Allergies: {formData.medical_history.allergies}</p>
+                        )}
+                        <p>• Previous OB/GYN Surgeries: {formData.medical_history.previous_surgeries ? 'Yes' : 'No'}</p>
+                        {formData.medical_history.chronic_conditions.length > 0 && (
+                          <div>
+                            <p className="mb-2">• Chronic Conditions:</p>
+                            <div className="flex flex-wrap gap-2 ml-4">
+                              {formData.medical_history.chronic_conditions.map(condition => (
+                                <Badge key={condition} className="bg-sky-200 dark:bg-indigo-800 text-sky-900 dark:text-indigo-100 border-2 border-sky-400 dark:border-indigo-600 px-3 py-1 font-bold">
+                                  {condition}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   <div className="flex justify-between pt-6">
@@ -575,9 +739,9 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-4xl mb-3 text-blue-800 dark:text-purple-200 font-black">Recommendation Result</CardTitle>
+                        <CardTitle className="text-4xl mb-3 text-blue-800 dark:text-purple-200 font-black">Triage Analysis Results</CardTitle>
                         <p className="text-blue-700 dark:text-purple-300 text-lg font-semibold">
-                          Based on your symptoms and medical history
+                          Subspecialty recommendations based on your symptoms
                         </p>
                       </div>
                       <Badge className={`${getRiskColor(result.risk_level)} px-6 py-3 text-lg font-black shadow-lg`}>
@@ -586,36 +750,64 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-8">
-                    {/* Recommended Specialty */}
+                    {/* Top Recommendation */}
                     <div className="text-center p-10 bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 rounded-3xl text-white shadow-2xl">
-                      <p className="text-base opacity-95 mb-3 font-bold">Recommended Specialty:</p>
-                      <h2 className="text-5xl font-black mb-6 drop-shadow-lg">{result.recommendation}</h2>
+                      <p className="text-base opacity-95 mb-3 font-bold">Top Recommended Specialty:</p>
+                      <h2 className="text-5xl font-black mb-6 drop-shadow-lg">{result.top_recommendation}</h2>
                       <div className="flex items-center justify-center gap-6">
                         <div>
-                          <p className="text-base opacity-95 font-bold">Confidence Score</p>
-                          <p className="text-4xl font-black mt-1">{result.confidence_score}%</p>
+                          <p className="text-base opacity-95 font-bold">Match Score</p>
+                          <p className="text-4xl font-black mt-1">{result.subspecialty_rankings[0].score}%</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Confidence Progress */}
-                    <div>
-                      <div className="flex justify-between mb-3">
-                        <span className="text-base font-black text-blue-900 dark:text-purple-200">Match Confidence</span>
-                        <span className="text-base font-black text-blue-700 dark:text-purple-400">
-                          {result.confidence_score}%
-                        </span>
+                    {/* Subspecialty Rankings Bar Chart */}
+                    <div className="p-8 bg-cyan-100 dark:bg-blue-900 rounded-2xl border-3 border-cyan-300 dark:border-blue-700 shadow-lg">
+                      <h3 className="font-black text-2xl mb-6 flex items-center gap-3 text-cyan-900 dark:text-blue-100">
+                        <Activity className="w-7 h-7" />
+                        Subspecialty Match Analysis
+                      </h3>
+                      <div className="space-y-4">
+                        {result.subspecialty_rankings.map((specialty, index) => (
+                          <div key={specialty.name} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-lg text-cyan-900 dark:text-blue-100">
+                                {index + 1}. {specialty.name}
+                              </span>
+                              <span className="font-black text-xl text-cyan-700 dark:text-blue-300">
+                                {specialty.score}%
+                              </span>
+                            </div>
+                            <div className="relative h-8 bg-cyan-200 dark:bg-blue-950 rounded-full overflow-hidden shadow-inner">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${specialty.score}%` }}
+                                transition={{ duration: 1, delay: index * 0.1 }}
+                                className={`h-full rounded-full ${
+                                  index === 0
+                                    ? 'bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500'
+                                    : index === 1
+                                    ? 'bg-gradient-to-r from-blue-500 to-cyan-400 dark:from-purple-500 dark:to-pink-400'
+                                    : 'bg-gradient-to-r from-blue-400 to-cyan-300 dark:from-purple-400 dark:to-pink-300'
+                                }`}
+                                style={{ 
+                                  boxShadow: index === 0 ? '0 0 20px rgba(59, 130, 246, 0.5)' : 'none' 
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <Progress value={result.confidence_score} className="h-4 bg-blue-200 dark:bg-purple-900" />
                     </div>
 
                     {/* Clinical Explanation */}
-                    <div className="p-8 bg-cyan-100 dark:bg-blue-900 rounded-2xl border-3 border-cyan-300 dark:border-blue-700 shadow-lg">
-                      <h3 className="font-black text-xl mb-4 flex items-center gap-3 text-cyan-900 dark:text-blue-100">
-                        <Activity className="w-6 h-6" />
+                    <div className="p-8 bg-teal-100 dark:bg-rose-900 rounded-2xl border-3 border-teal-300 dark:border-rose-700 shadow-lg">
+                      <h3 className="font-black text-xl mb-4 flex items-center gap-3 text-teal-900 dark:text-rose-100">
+                        <FileText className="w-6 h-6" />
                         Clinical Reasoning
                       </h3>
-                      <p className="text-cyan-800 dark:text-blue-200 leading-relaxed text-lg font-semibold">
+                      <p className="text-teal-800 dark:text-rose-200 leading-relaxed text-lg font-semibold">
                         {result.clinical_explanation}
                       </p>
                     </div>
@@ -655,9 +847,16 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                           setFormData({
                             primary_symptoms: "",
                             symptom_details: "",
+                            red_flags: [],
                             medical_history: {
                               is_pregnant: false,
+                              gestational_age: "",
+                              menstrual_cycle: "",
+                              last_menstrual_period: "",
+                              current_medications: "",
+                              allergies: "",
                               previous_surgeries: false,
+                              bleeding_disorder: false,
                               chronic_conditions: []
                             },
                             referral_reason: ""

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Activity, Heart, Moon, Sun, Menu, X, LayoutDashboard, BookOpen, Calendar } from "lucide-react";
+import { Home, Activity, Heart, Moon, Sun, Menu, X, LayoutDashboard, BookOpen, Calendar, User } from "lucide-react";
 
 export default function Layout({ children, currentPageName }) {
   const [darkMode, setDarkMode] = useState(true);
@@ -41,6 +41,8 @@ export default function Layout({ children, currentPageName }) {
     { name: "Triage", path: "Triage", icon: Activity },
     { name: "Cycle Tracker", path: "CycleTracker", icon: Calendar },
     { name: "Resources", path: "Resources", icon: BookOpen },
+    { name: "Profile", path: "Profile", icon: User },
+
   ];
 
   const isActive = (path) => currentPageName === path;
@@ -95,6 +97,17 @@ export default function Layout({ children, currentPageName }) {
                   <Moon className="w-5 h-5 text-blue-600" />
                 )}
               </Button>
+
+              {/* ADD THIS: Profile Button */}
+              <Link to={createPageUrl("Profile")}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl hover:bg-blue-100 dark:hover:bg-purple-900/50 border-2 border-transparent hover:border-blue-300 dark:hover:border-purple-600"
+                >
+                  <User className="w-5 h-5 text-blue-600 dark:text-purple-400" />
+                </Button>
+              </Link>
 
               {/* User Info */}
               {user && (

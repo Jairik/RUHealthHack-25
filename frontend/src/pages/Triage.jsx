@@ -19,6 +19,7 @@ export default function Triage() {
   const [formData, setFormData] = useState({
     primary_symptoms: "",
     symptom_details: "",
+    red_flags: [],
     medical_history: {
       is_pregnant: false,
       previous_surgeries: false,
@@ -28,9 +29,19 @@ export default function Triage() {
   });
 
   const commonSymptoms = [
-    "Pelvic pain", "Heavy bleeding", "Irregular periods", "Pregnancy complications",
-    "Urinary incontinence", "Endometriosis symptoms", "Fertility concerns",
-    "Abnormal discharge", "Pelvic organ prolapse"
+    "Pelvic pain", "Vaginal bleeding", "Abnormal discharge", "Fever",
+    "Nausea/Vomiting", "Dizziness", "Headache", "Contractions",
+    "Leaking fluid", "Decreased fetal movement"
+  ];
+
+  // Add redFlags array after commonSymptoms:
+  const redFlags = [
+    "Severe pain (8-10/10)",
+    "Heavy bleeding (>1 pad/hour)",
+    "No fetal movement",
+    "Chest pain/severe shortness of breath",
+    "Severe headache with vision changes",
+    "Fever >101°F (pregnant)"
   ];
 
   const chronicConditions = [
@@ -51,6 +62,21 @@ export default function Triage() {
       setFormData({
         ...formData,
         primary_symptoms: [...symptoms, symptom].filter(Boolean).join(", ")
+      });
+    }
+  };
+
+  const toggleRedFlag = (flag) => {
+    const flags = formData.red_flags || [];
+    if (flags.includes(flag)) {
+      setFormData({
+        ...formData,
+        red_flags: flags.filter(f => f !== flag)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        red_flags: [...flags, flag]
       });
     }
   };
@@ -226,6 +252,75 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                       rows={6}
                       className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 focus:border-blue-600 dark:focus:border-purple-400 font-semibold"
                     />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card
+                      className={`cursor-pointer transition-all ${
+                        formData.medical_history.is_pregnant
+                          ? "border-4 border-blue-600 dark:border-purple-500 bg-blue-100 dark:bg-purple-900 scale-105 shadow-xl"
+                          : "border-3 border-blue-300 dark:border-purple-700 bg-white dark:bg-gray-950 hover:scale-105 hover:shadow-lg"
+                      }`}
+                      onClick={() => setFormData({
+                        ...formData,
+                        medical_history: {
+                          ...formData.medical_history,
+                          is_pregnant: !formData.medical_history.is_pregnant
+                        }
+                      })}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Currently Pregnant?</span>
+                          {formData.medical_history.is_pregnant && (
+                            <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {formData.medical_history.is_pregnant && (
+                      <div>
+                        <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                          Weeks Pregnant:
+                        </label>
+                        <Input
+                          type="number"
+                          value={formData.medical_history.gestational_age}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            medical_history: {
+                              ...formData.medical_history,
+                              gestational_age: e.target.value
+                            }
+                          })}
+                          placeholder="Enter weeks"
+                          className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-base font-bold mb-4 text-red-800 dark:text-red-300 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      RED FLAGS - Select if present (requires immediate attention):
+                    </label>
+                    <div className="flex flex-wrap gap-3">
+                      {redFlags.map((flag) => (
+                        <Badge
+                          key={flag}
+                          className={`cursor-pointer px-5 py-3 text-base font-bold transition-all ${
+                            formData.red_flags.includes(flag)
+                              ? "bg-gradient-to-r from-red-600 to-orange-500 text-white border-0 shadow-lg scale-105"
+                              : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-2 border-red-400 dark:border-red-600 hover:scale-105"
+                          }`}
+                          onClick={() => toggleRedFlag(flag)}
+                        >
+                          {flag}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="flex justify-end">

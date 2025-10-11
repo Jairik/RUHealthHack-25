@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -185,17 +186,17 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-cyan-50 dark:from-gray-950 dark:via-purple-950 dark:to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <FileText className="w-16 h-16 text-blue-600 dark:text-purple-400 animate-pulse mx-auto mb-4" />
-          <p className="text-xl font-bold text-blue-800 dark:text-purple-200">Loading triage cases...</p>
+          <FileText className="w-16 h-16 text-indigo-600 dark:text-purple-400 animate-pulse mx-auto mb-4" />
+          <p className="text-xl font-bold text-indigo-800 dark:text-purple-200">Loading triage cases...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-cyan-50 dark:from-gray-950 dark:via-purple-950 dark:to-gray-900 py-12 px-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 py-12 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-12">
@@ -204,18 +205,18 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-blue-200 dark:bg-purple-900 rounded-full mb-6 border-2 border-blue-300 dark:border-purple-700">
-              <TrendingUp className="w-5 h-5 text-blue-700 dark:text-purple-300" />
-              <span className="text-sm font-bold text-blue-900 dark:text-purple-200">
+            <div className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-200 dark:bg-purple-900 rounded-full mb-6 border-2 border-indigo-300 dark:border-purple-700">
+              <TrendingUp className="w-5 h-5 text-indigo-700 dark:text-purple-300" />
+              <span className="text-sm font-bold text-indigo-900 dark:text-purple-200">
                 Triage Dashboard
               </span>
             </div>
             
-            <h1 className="text-5xl lg:text-6xl font-black mb-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-500 dark:from-purple-400 dark:via-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
+            <h1 className="text-5xl lg:text-6xl font-black mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
               Triage Case History
             </h1>
             
-            <p className="text-xl text-blue-700 dark:text-purple-300 font-semibold">
+            <p className="text-xl text-indigo-700 dark:text-purple-300 font-semibold">
               View and manage all completed triage conversations
             </p>
           </motion.div>
@@ -224,9 +225,9 @@ export default function Dashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {[
-            { label: "Total Cases", value: stats.total, icon: FileText, gradient: "from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500" },
-            { label: "Cases Today", value: stats.today, icon: Calendar, gradient: "from-cyan-500 to-teal-400 dark:from-pink-600 dark:to-rose-500" },
-            { label: "This Week", value: stats.thisWeek, icon: TrendingUp, gradient: "from-teal-500 to-green-400 dark:from-rose-600 dark:to-orange-500" }
+            { label: "Total Cases", value: stats.total, icon: FileText, gradient: "from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600" },
+            { label: "Cases Today", value: stats.today, icon: Calendar, gradient: "from-purple-500 via-pink-500 to-rose-500 dark:from-purple-600 dark:via-pink-600 dark:to-rose-600" },
+            { label: "This Week", value: stats.thisWeek, icon: TrendingUp, gradient: "from-pink-500 via-rose-500 to-red-500 dark:from-pink-600 dark:via-rose-600 dark:to-red-600" }
           ].map((stat, index) => (
             <motion.div
               key={index}
@@ -234,15 +235,15 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <Card className="border-4 border-blue-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-gray-900 hover:scale-105 transition-all">
+              <Card className="border-4 border-indigo-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-slate-900 hover:scale-105 transition-all">
                 <CardContent className="p-6">
                   <div className={`w-14 h-14 bg-gradient-to-r ${stat.gradient} rounded-2xl flex items-center justify-center mb-4 shadow-xl`}>
                     <stat.icon className="w-7 h-7 text-white" />
                   </div>
-                  <div className="text-4xl font-black text-blue-800 dark:text-purple-200 mb-2">
+                  <div className="text-4xl font-black text-indigo-800 dark:text-purple-200 mb-2">
                     {stat.value}
                   </div>
-                  <div className="text-sm font-bold text-blue-600 dark:text-purple-400">
+                  <div className="text-sm font-bold text-indigo-600 dark:text-purple-400">
                     {stat.label}
                   </div>
                 </CardContent>
@@ -252,15 +253,15 @@ export default function Dashboard() {
         </div>
 
         {/* Search Bar */}
-        <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900 mb-8">
+        <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900 mb-8">
           <CardContent className="p-6">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500 dark:text-purple-400 w-5 h-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-500 dark:text-purple-400 w-5 h-5" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by patient name, recommendation, doctor, or agent ID..."
-                className="pl-12 text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold h-14"
+                className="pl-12 text-lg bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-3 border-indigo-400 dark:border-purple-600 font-semibold h-14"
               />
             </div>
           </CardContent>
@@ -269,13 +270,13 @@ export default function Dashboard() {
         {/* Cases List */}
         <div className="space-y-4">
           {filteredCases.length === 0 ? (
-            <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900">
+            <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900">
               <CardContent className="p-12 text-center">
-                <FileText className="w-16 h-16 text-blue-300 dark:text-purple-700 mx-auto mb-4" />
-                <p className="text-xl font-bold text-blue-800 dark:text-purple-200 mb-2">
+                <FileText className="w-16 h-16 text-indigo-300 dark:text-purple-700 mx-auto mb-4" />
+                <p className="text-xl font-bold text-indigo-800 dark:text-purple-200 mb-2">
                   No triage cases found
                 </p>
-                <p className="text-blue-600 dark:text-purple-400">
+                <p className="text-indigo-600 dark:text-purple-400">
                   {searchTerm ? "Try a different search term" : "Complete your first triage to see it here"}
                 </p>
               </CardContent>
@@ -289,15 +290,15 @@ export default function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.05 }}
                 >
-                  <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900 hover:shadow-2xl transition-all">
+                  <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900 hover:shadow-2xl transition-all">
                     <CardHeader>
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <CardTitle className="text-2xl font-black text-blue-900 dark:text-purple-100">
+                            <CardTitle className="text-2xl font-black text-indigo-900 dark:text-purple-100">
                               {case_.patient_first_name} {case_.patient_last_name}
                             </CardTitle>
-                            <Badge className="bg-teal-200 dark:bg-teal-900 text-teal-900 dark:text-teal-100 border-2 border-teal-400 dark:border-teal-600 px-3 py-1 font-bold">
+                            <Badge className="bg-purple-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-purple-400 dark:border-purple-600 px-3 py-1 font-bold">
                               Agent #{case_.agent_id}
                             </Badge>
                             {case_.sent_to_epic && (
@@ -308,7 +309,7 @@ export default function Dashboard() {
                             )}
                           </div>
                           <div className="flex flex-wrap items-center gap-3">
-                            <Badge className="bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600 px-3 py-1 font-bold">
+                            <Badge className="bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600 px-3 py-1 font-bold">
                               <Calendar className="w-3 h-3 mr-1" />
                               {format(new Date(case_.created_date), 'MMM d, yyyy - h:mm a')}
                             </Badge>
@@ -347,7 +348,7 @@ export default function Dashboard() {
                           <Button
                             variant="ghost"
                             onClick={() => setExpandedCase(expandedCase === case_.id ? null : case_.id)}
-                            className="text-blue-600 dark:text-purple-400"
+                            className="text-indigo-600 dark:text-purple-400"
                           >
                             {expandedCase === case_.id ? (
                               <ChevronUp className="w-6 h-6" />
@@ -362,22 +363,22 @@ export default function Dashboard() {
                     <CardContent>
                       {/* Summary */}
                       <div className="grid md:grid-cols-2 gap-6 mb-4">
-                        <div className="p-4 bg-blue-100 dark:bg-purple-900/30 rounded-xl border-2 border-blue-300 dark:border-purple-700">
-                          <p className="text-sm font-bold text-blue-600 dark:text-purple-400 mb-2">
+                        <div className="p-4 bg-indigo-100 dark:bg-purple-900/30 rounded-xl border-2 border-indigo-300 dark:border-purple-700">
+                          <p className="text-sm font-bold text-indigo-600 dark:text-purple-400 mb-2">
                             <Sparkles className="w-3 h-3 inline mr-1" />
                             Recommendation
                           </p>
-                          <p className="text-lg font-black text-blue-900 dark:text-purple-100">
+                          <p className="text-lg font-black text-indigo-900 dark:text-purple-100">
                             {case_.final_recommendation}
                           </p>
                         </div>
                         
-                        <div className="p-4 bg-cyan-100 dark:bg-pink-900/30 rounded-xl border-2 border-cyan-300 dark:border-pink-700">
-                          <p className="text-sm font-bold text-cyan-600 dark:text-pink-400 mb-2">
+                        <div className="p-4 bg-purple-100 dark:bg-pink-900/30 rounded-xl border-2 border-purple-300 dark:border-pink-700">
+                          <p className="text-sm font-bold text-purple-600 dark:text-pink-400 mb-2">
                             <Users className="w-3 h-3 inline mr-1" />
                             Recommended Doctor
                           </p>
-                          <p className="text-lg font-black text-cyan-900 dark:text-pink-100">
+                          <p className="text-lg font-black text-indigo-900 dark:text-pink-100">
                             Dr. {case_.recommended_doctor}
                           </p>
                         </div>
@@ -401,12 +402,12 @@ export default function Dashboard() {
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="space-y-6 pt-6 border-t-2 border-blue-200 dark:border-purple-800"
+                            className="space-y-6 pt-6 border-t-2 border-indigo-200 dark:border-purple-800"
                           >
                             {/* Health History */}
                             {case_.health_history && case_.health_history.length > 0 && (
                               <div>
-                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-3">
+                                <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-3">
                                   Health History:
                                 </p>
                                 <div className="flex flex-wrap gap-2">
@@ -425,20 +426,20 @@ export default function Dashboard() {
                             {/* Conversation History */}
                             {case_.conversation_history && case_.conversation_history.length > 0 && (
                               <div>
-                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-4">
+                                <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-4">
                                   Conversation ({case_.conversation_history.length} Q&A):
                                 </p>
                                 <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                                   {case_.conversation_history.map((qa, idx) => (
                                     <div key={idx} className="space-y-2">
-                                      <div className="p-3 bg-blue-100 dark:bg-purple-900/30 rounded-lg border border-blue-300 dark:border-purple-700">
-                                        <p className="text-xs font-bold text-blue-600 dark:text-purple-400 mb-1">Q{idx + 1}:</p>
-                                        <p className="text-sm font-semibold text-blue-900 dark:text-purple-100">{qa.question}</p>
+                                      <div className="p-3 bg-indigo-100 dark:bg-purple-900/30 rounded-lg border border-indigo-300 dark:border-purple-700">
+                                        <p className="text-xs font-bold text-indigo-600 dark:text-purple-400 mb-1">Q{idx + 1}:</p>
+                                        <p className="text-sm font-semibold text-indigo-900 dark:text-purple-100">{qa.question}</p>
                                       </div>
                                       {qa.answer && (
-                                        <div className="p-3 bg-cyan-100 dark:bg-pink-900/30 rounded-lg border border-cyan-300 dark:border-pink-700 ml-4">
-                                          <p className="text-xs font-bold text-cyan-600 dark:text-pink-400 mb-1">A:</p>
-                                          <p className="text-sm font-semibold text-cyan-900 dark:text-pink-100">{qa.answer}</p>
+                                        <div className="p-3 bg-purple-100 dark:bg-pink-900/30 rounded-lg border border-purple-300 dark:border-pink-700 ml-4">
+                                          <p className="text-xs font-bold text-purple-600 dark:text-pink-400 mb-1">A:</p>
+                                          <p className="text-sm font-semibold text-indigo-900 dark:text-pink-100">{qa.answer}</p>
                                         </div>
                                       )}
                                     </div>
@@ -450,13 +451,13 @@ export default function Dashboard() {
                             {/* Subspecialist Confidences */}
                             {case_.subspecialist_confidences && case_.subspecialist_confidences.length > 0 && (
                               <div>
-                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-4">
+                                <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-4">
                                   Final Subspecialist Confidences:
                                 </p>
                                 <div className="grid md:grid-cols-2 gap-3">
                                   {case_.subspecialist_confidences.map((sub, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-teal-100 dark:bg-rose-900/30 rounded-lg border border-teal-300 dark:border-rose-700">
-                                      <span className="text-sm font-bold text-teal-900 dark:text-rose-100">{sub.name}</span>
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-pink-100 dark:bg-rose-900/30 rounded-lg border border-pink-300 dark:border-rose-700">
+                                      <span className="text-sm font-bold text-pink-900 dark:text-rose-100">{sub.name}</span>
                                       <Badge className={`${getConfidenceColor(sub.confidence)} border font-bold`}>
                                         {sub.confidence}%
                                       </Badge>
@@ -469,7 +470,7 @@ export default function Dashboard() {
                             {/* Doctor Matches - Clickable */}
                             {case_.recommended_doctor && (
                               <div>
-                                <p className="text-base font-bold text-blue-800 dark:text-purple-200 mb-4">
+                                <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-4">
                                   Recommended Doctors (Click to View Availability):
                                 </p>
                                 <div className="grid md:grid-cols-2 gap-3">
@@ -497,34 +498,34 @@ export default function Dashboard() {
                                     <button
                                       key={docIdx}
                                       onClick={() => handleDoctorClick(doctor)}
-                                      className="p-4 bg-cyan-100 dark:bg-pink-900/30 rounded-xl border-2 border-cyan-300 dark:border-pink-700 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
+                                      className="p-4 bg-purple-100 dark:bg-pink-900/30 rounded-xl border-2 border-purple-300 dark:border-pink-700 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
                                     >
                                       <div className="flex items-start justify-between mb-2">
                                         <div>
                                           <Badge className={`${
                                             docIdx === 0
                                               ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
-                                              : 'bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600'
+                                              : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
                                           } font-black mb-2`}>
                                             {docIdx === 0 ? "Best Match ⭐" : docIdx === 1 ? "Top Match" : "Second Match"}
                                           </Badge>
-                                          <p className="text-lg font-black text-cyan-900 dark:text-pink-100">
+                                          <p className="text-lg font-black text-indigo-900 dark:text-pink-100">
                                             Dr. {doctor.name}
                                           </p>
-                                          <p className="text-sm font-semibold text-cyan-700 dark:text-pink-300">
+                                          <p className="text-sm font-semibold text-purple-700 dark:text-pink-300">
                                             {doctor.specialty}
                                           </p>
                                         </div>
-                                        <Badge className="bg-teal-200 dark:bg-rose-900 text-teal-900 dark:text-rose-100 border-2 border-teal-400 dark:border-rose-600 font-bold">
+                                        <Badge className="bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100 border-2 border-rose-400 dark:border-rose-600 font-bold">
                                           {doctor.availability}
                                         </Badge>
                                       </div>
                                       {doctor.credentials && (
-                                        <p className="text-xs text-cyan-600 dark:text-pink-400 font-semibold">
+                                        <p className="text-xs text-purple-600 dark:text-pink-400 font-semibold">
                                           {doctor.credentials}
                                         </p>
                                       )}
-                                      <p className="text-xs text-cyan-500 dark:text-pink-500 mt-2 font-semibold">
+                                      <p className="text-xs text-purple-500 dark:text-pink-500 mt-2 font-semibold">
                                         Click to view availability →
                                       </p>
                                     </button>

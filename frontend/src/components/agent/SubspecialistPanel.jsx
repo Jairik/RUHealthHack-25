@@ -1,25 +1,26 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Users, Star } from "lucide-react";
+import { TrendingUp, Users, Star, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function SubspecialistPanel({ subspecialists, doctorMatches }) {
+export default function SubspecialistPanel({ subspecialists, conditions, doctorMatches }) {
   const matchLabels = ["Best Match", "Top Match", "Second Match", "Third Match", "Fourth Match", "Fifth Match"];
 
   return (
-    <div className="grid lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Subspecialist Confidence */}
-      <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900">
+      <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900">
         <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-blue-800 dark:text-purple-200 text-xl font-black">
-            <TrendingUp className="w-6 h-6" />
+          <CardTitle className="flex items-center gap-2 text-indigo-800 dark:text-purple-200 text-lg font-black">
+            <TrendingUp className="w-5 h-5" />
             Subspecialist Confidence
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-5">
+          <div className="space-y-4">
             {subspecialists && subspecialists.map((subspecialist, index) => (
               <motion.div
                 key={index}
@@ -29,7 +30,7 @@ export default function SubspecialistPanel({ subspecialists, doctorMatches }) {
                 className="space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-blue-900 dark:text-purple-200">
+                  <span className="text-xs font-bold text-indigo-900 dark:text-purple-200">
                     {subspecialist.name}
                   </span>
                   <Badge className={`${
@@ -38,13 +39,55 @@ export default function SubspecialistPanel({ subspecialists, doctorMatches }) {
                       : subspecialist.confidence >= 40
                       ? 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border-yellow-400 dark:border-yellow-600'
                       : 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100 border-red-400 dark:border-red-600'
-                  } border-2 font-black px-3 py-1`}>
-                    {subspecialist.confidence}%
+                  } border-2 font-black px-2 py-0.5 text-xs`}>
+                    {Math.round(subspecialist.confidence)}%
                   </Badge>
                 </div>
                 <Progress 
                   value={subspecialist.confidence} 
-                  className="h-3 bg-blue-200 dark:bg-purple-900"
+                  className="h-2 bg-indigo-200 dark:bg-purple-900"
+                />
+              </motion.div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Condition Probability Guesses */}
+      <Card className="border-3 border-rose-300 dark:border-rose-700 shadow-xl bg-white dark:bg-slate-900">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-rose-800 dark:text-rose-200 text-lg font-black">
+            <AlertCircle className="w-5 h-5" />
+            Condition Probability
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {conditions && conditions.map((condition, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                className="space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                    {condition.name}
+                  </span>
+                  <Badge className={`${
+                    condition.probability >= 60
+                      ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100 border-red-400 dark:border-red-600'
+                      : condition.probability >= 30
+                      ? 'bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100 border-orange-400 dark:border-orange-600'
+                      : 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border-yellow-400 dark:border-yellow-600'
+                  } border-2 font-black px-2 py-0.5 text-xs`}>
+                    {Math.round(condition.probability)}%
+                  </Badge>
+                </div>
+                <Progress 
+                  value={condition.probability} 
+                  className="h-2 bg-rose-200 dark:bg-rose-900"
                 />
               </motion.div>
             ))}
@@ -53,46 +96,46 @@ export default function SubspecialistPanel({ subspecialists, doctorMatches }) {
       </Card>
 
       {/* Doctor Matches */}
-      <Card className="border-3 border-blue-300 dark:border-purple-700 shadow-xl bg-white dark:bg-gray-900">
+      <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900">
         <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-blue-800 dark:text-purple-200 text-xl font-black">
-            <Users className="w-6 h-6" />
+          <CardTitle className="flex items-center gap-2 text-indigo-800 dark:text-purple-200 text-lg font-black">
+            <Users className="w-5 h-5" />
             Recommended Doctors
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {doctorMatches && doctorMatches.map((doctor, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                className="p-4 bg-cyan-100 dark:bg-pink-900/30 rounded-xl border-2 border-cyan-300 dark:border-pink-700"
+                className="p-3 bg-purple-100 dark:bg-pink-900/30 rounded-xl border-2 border-purple-300 dark:border-pink-700"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
+                <div className="flex items-start justify-between mb-1">
+                  <div className="flex-1">
                     <Badge className={`${
                       index === 0
                         ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
-                        : 'bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600'
-                    } font-black mb-2`}>
+                        : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
+                    } font-black mb-1 text-xs`}>
                       {index < matchLabels.length ? matchLabels[index] : `Match ${index + 1}`}
-                      {index === 0 && <Star className="w-3 h-3 ml-1 inline" />}
+                      {index === 0 && <Star className="w-2 h-2 ml-1 inline" />}
                     </Badge>
-                    <p className="text-lg font-black text-cyan-900 dark:text-pink-100">
+                    <p className="text-sm font-black text-purple-900 dark:text-pink-100">
                       Dr. {doctor.name}
                     </p>
-                    <p className="text-sm font-semibold text-cyan-700 dark:text-pink-300">
+                    <p className="text-xs font-semibold text-purple-700 dark:text-pink-300">
                       {doctor.specialty}
                     </p>
                   </div>
-                  <Badge className="bg-teal-200 dark:bg-rose-900 text-teal-900 dark:text-rose-100 border-2 border-teal-400 dark:border-rose-600 font-bold">
+                  <Badge className="bg-indigo-200 dark:bg-rose-900 text-indigo-900 dark:text-rose-100 border-2 border-indigo-400 dark:border-rose-600 font-bold text-xs">
                     {doctor.availability}
                   </Badge>
                 </div>
                 {doctor.credentials && (
-                  <p className="text-xs text-cyan-600 dark:text-pink-400 font-semibold">
+                  <p className="text-xs text-purple-600 dark:text-pink-400 font-semibold">
                     {doctor.credentials}
                   </p>
                 )}

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -20,6 +21,7 @@ export default function AgentTriage() {
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [questionHistory, setQuestionHistory] = useState([]);
   const [subspecialists, setSubspecialists] = useState([]);
+  const [conditions, setConditions] = useState([]);
   const [doctorMatches, setDoctorMatches] = useState([]);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [agentNotes, setAgentNotes] = useState("");
@@ -27,14 +29,14 @@ export default function AgentTriage() {
 
   // MOCK DATA - Questions pool
   const mockQuestions = [
-    "What is the primary reason for today's call?",
-    "How long have you been experiencing these symptoms?",
-    "Have you noticed any patterns or triggers?",
-    "Are you currently taking any medications?",
-    "Have you experienced similar issues before?",
-    "Is there anything else that concerns you?",
-    "On a scale of 1-10, how would you rate your discomfort?",
-    "Have you had any recent medical procedures?"
+    "Are you currently experiencing pelvic pain?",
+    "Have you noticed irregular menstrual cycles?",
+    "Do you have difficulty conceiving?",
+    "Are you experiencing heavy menstrual bleeding?",
+    "Do you have symptoms of urinary incontinence?",
+    "Are you currently pregnant or planning pregnancy?",
+    "Have you noticed any unusual vaginal discharge?",
+    "Do you experience pain during intercourse?"
   ];
 
   const handlePatientSubmit = async (patientData) => {
@@ -68,6 +70,16 @@ export default function AgentTriage() {
         { name: "Gynecologic Oncology", confidence: 10 },
         { name: "General OB/GYN", confidence: 40 }
       ];
+
+      // MOCK DATA - Initial condition probabilities
+      const mockConditions = [
+        { name: "Polycystic Ovary Syndrome (PCOS)", probability: 35 },
+        { name: "Endometriosis", probability: 28 },
+        { name: "Uterine Fibroids", probability: 22 },
+        { name: "Pelvic Inflammatory Disease", probability: 18 },
+        { name: "Ovarian Cysts", probability: 25 },
+        { name: "Menstrual Irregularities", probability: 40 }
+      ];
       
       // MOCK DATA - Doctor matches
       const mockDoctors = [
@@ -82,6 +94,7 @@ export default function AgentTriage() {
       setPatient(mockPatientData);
       setCurrentQuestion(mockInitialQuestion);
       setSubspecialists(mockSubspecialists);
+      setConditions(mockConditions);
       setDoctorMatches(mockDoctors);
       setStep(2);
     } catch (error) {
@@ -120,9 +133,16 @@ export default function AgentTriage() {
         ...sub,
         confidence: Math.min(100, Math.max(5, sub.confidence + (Math.random() * 20 - 10)))
       })).sort((a, b) => b.confidence - a.confidence);
+
+      // MOCK DATA - Update condition probabilities (simulate AI analysis)
+      const updatedConditions = conditions.map(cond => ({
+        ...cond,
+        probability: Math.min(95, Math.max(5, cond.probability + (Math.random() * 25 - 12.5)))
+      })).sort((a, b) => b.probability - a.probability);
       
       setCurrentQuestion(mockNextQuestion);
       setSubspecialists(updatedSubspecialists);
+      setConditions(updatedConditions);
       
     } catch (error) {
       console.error("Error processing answer:", error);
@@ -145,6 +165,7 @@ export default function AgentTriage() {
     try {
       const topSubspecialist = subspecialists[0];
       const topDoctor = doctorMatches[0];
+      const topCondition = conditions[0];
       
       // MOCK DATA - Triage case that would be saved
       const triageData = {
@@ -161,6 +182,9 @@ export default function AgentTriage() {
         confidence_score: topSubspecialist.confidence,
         recommended_doctor: topDoctor.name,
         subspecialist_confidences: subspecialists,
+        condition_probabilities: conditions,
+        top_condition: topCondition.name,
+        top_condition_probability: topCondition.probability,
         status: "completed",
         agent_notes: agentNotes
       };
@@ -190,7 +214,7 @@ export default function AgentTriage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-cyan-50 dark:from-gray-950 dark:via-purple-950 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950">
       {step === 1 ? (
         <PatientInfoForm onSubmit={handlePatientSubmit} loading={loading} />
       ) : (
@@ -212,9 +236,10 @@ export default function AgentTriage() {
               loading={loading}
             />
             
-            {/* Subspecialist and Doctor Match Panel */}
+            {/* Subspecialist, Conditions, and Doctor Match Panel */}
             <SubspecialistPanel
               subspecialists={subspecialists}
+              conditions={conditions}
               doctorMatches={doctorMatches}
             />
 
@@ -250,39 +275,50 @@ export default function AgentTriage() {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-2xl"
             >
-              <Card className="border-4 border-blue-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-gray-900">
+              <Card className="border-4 border-indigo-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-slate-900">
                 <CardContent className="p-8 space-y-6">
                   <div className="text-center">
                     <CheckCircle className="w-16 h-16 text-green-600 dark:text-green-500 mx-auto mb-4" />
-                    <h2 className="text-3xl font-black text-blue-900 dark:text-purple-200 mb-2">
+                    <h2 className="text-3xl font-black text-indigo-900 dark:text-purple-200 mb-2">
                       End Conversation
                     </h2>
-                    <p className="text-blue-700 dark:text-purple-300 font-semibold">
+                    <p className="text-indigo-700 dark:text-purple-300 font-semibold">
                       This will save the triage case to the dashboard
                     </p>
                   </div>
 
                   {/* Summary */}
-                  <div className="p-5 bg-blue-100 dark:bg-purple-900/30 rounded-xl border-2 border-blue-300 dark:border-purple-700">
-                    <p className="text-sm font-bold text-blue-600 dark:text-purple-400 mb-3">
-                      Final Recommendation:
-                    </p>
-                    <div className="space-y-2">
-                      <p className="text-lg font-black text-blue-900 dark:text-purple-100">
-                        {subspecialists[0]?.name} ({Math.round(subspecialists[0]?.confidence)}% confidence)
+                  <div className="space-y-4">
+                    <div className="p-5 bg-indigo-100 dark:bg-purple-900/30 rounded-xl border-2 border-indigo-300 dark:border-purple-700">
+                      <p className="text-sm font-bold text-indigo-600 dark:text-purple-400 mb-3">
+                        Final Recommendation:
                       </p>
-                      <p className="text-base font-semibold text-blue-800 dark:text-purple-200">
-                        Recommended Doctor: Dr. {doctorMatches[0]?.name}
+                      <div className="space-y-2">
+                        <p className="text-lg font-black text-indigo-900 dark:text-purple-100">
+                          {subspecialists[0]?.name} ({Math.round(subspecialists[0]?.confidence)}% confidence)
+                        </p>
+                        <p className="text-base font-semibold text-indigo-800 dark:text-purple-200">
+                          Recommended Doctor: Dr. {doctorMatches[0]?.name}
+                        </p>
+                        <p className="text-sm font-semibold text-indigo-700 dark:text-purple-300">
+                          {questionHistory.length} questions asked
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-rose-100 dark:bg-rose-900/30 rounded-xl border-2 border-rose-300 dark:border-rose-700">
+                      <p className="text-sm font-bold text-rose-600 dark:text-rose-400 mb-3">
+                        Top Suspected Condition:
                       </p>
-                      <p className="text-sm font-semibold text-blue-700 dark:text-purple-300">
-                        {questionHistory.length} questions asked
+                      <p className="text-lg font-black text-rose-900 dark:text-rose-100">
+                        {conditions[0]?.name} ({Math.round(conditions[0]?.probability)}% probability)
                       </p>
                     </div>
                   </div>
 
                   {/* Agent Notes */}
                   <div>
-                    <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                    <label className="block text-base font-bold mb-3 text-indigo-800 dark:text-purple-200">
                       Agent Notes (Optional):
                     </label>
                     <Textarea
@@ -290,7 +326,7 @@ export default function AgentTriage() {
                       onChange={(e) => setAgentNotes(e.target.value)}
                       placeholder="Add any additional notes about this case..."
                       rows={4}
-                      className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                      className="text-lg bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-3 border-indigo-400 dark:border-purple-600 font-semibold"
                     />
                   </div>
 
@@ -300,7 +336,7 @@ export default function AgentTriage() {
                       variant="outline"
                       onClick={() => setShowEndDialog(false)}
                       disabled={saving}
-                      className="flex-1 text-lg py-6 border-3 border-blue-400 dark:border-purple-600 text-blue-800 dark:text-purple-200 hover:bg-blue-100 dark:hover:bg-purple-900/50 font-black"
+                      className="flex-1 text-lg py-6 border-3 border-indigo-400 dark:border-purple-600 text-indigo-800 dark:text-purple-200 hover:bg-indigo-100 dark:hover:bg-purple-900/50 font-black"
                     >
                       <XCircle className="w-5 h-5 mr-2" />
                       Cancel

@@ -26,18 +26,26 @@ export default function AgentTriage() {
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [agentNotes, setAgentNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [caseNumber, setCaseNumber] = useState("");
 
   // MOCK DATA - Questions pool
   const mockQuestions = [
-    "Are you currently experiencing pelvic pain?",
-    "Have you noticed irregular menstrual cycles?",
-    "Do you have difficulty conceiving?",
-    "Are you experiencing heavy menstrual bleeding?",
-    "Do you have symptoms of urinary incontinence?",
-    "Are you currently pregnant or planning pregnancy?",
-    "Have you noticed any unusual vaginal discharge?",
-    "Do you experience pain during intercourse?"
+    "What is the primary reason for today's call?",
+    "How long have you been experiencing these symptoms?",
+    "Have you noticed any patterns or triggers?",
+    "Are you currently taking any medications?",
+    "Have you experienced similar issues before?",
+    "Is there anything else that concerns you?",
+    "On a scale of 1-10, how would you rate your discomfort?",
+    "Have you had any recent medical procedures?"
   ];
+
+  // Generate unique case number
+  const generateCaseNumber = () => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    return `TC-${timestamp}-${random}`;
+  };
 
   const handlePatientSubmit = async (patientData) => {
     setLoading(true);
@@ -47,6 +55,10 @@ export default function AgentTriage() {
     
     try {
       setAgentId(patientData.agentId);
+      
+      // Generate unique case number
+      const newCaseNumber = generateCaseNumber();
+      setCaseNumber(newCaseNumber);
       
       // PLACEHOLDER: API call would go here
       // Example: const response = await fetch('/api/patient-lookup', { method: 'POST', body: JSON.stringify(patientData) });
@@ -81,14 +93,11 @@ export default function AgentTriage() {
         { name: "Menstrual Irregularities", probability: 40 }
       ];
       
-      // MOCK DATA - Doctor matches
+      // MOCK DATA - Top 3 Doctor matches
       const mockDoctors = [
         { name: "Sarah Johnson", specialty: "General OB/GYN", availability: "Available", credentials: "MD, FACOG" },
         { name: "Emily Chen", specialty: "Reproductive Endocrinology", availability: "Available", credentials: "MD, FACOG" },
-        { name: "Maria Rodriguez", specialty: "Minimally Invasive Surgery", availability: "Next Week", credentials: "DO, FACOG" },
-        { name: "Lisa Williams", specialty: "Urogynecology", availability: "Available", credentials: "MD, FACOG" },
-        { name: "Jennifer Brown", specialty: "General OB/GYN", availability: "Today", credentials: "MD" },
-        { name: "Amanda Davis", specialty: "Maternal-Fetal Medicine", availability: "Tomorrow", credentials: "MD, FACOG" }
+        { name: "Maria Rodriguez", specialty: "Minimally Invasive Surgery", availability: "Next Week", credentials: "DO, FACOG" }
       ];
       
       setPatient(mockPatientData);
@@ -169,6 +178,7 @@ export default function AgentTriage() {
       
       // MOCK DATA - Triage case that would be saved
       const triageData = {
+        case_number: caseNumber,
         agent_id: agentId,
         patient_first_name: patient.firstName,
         patient_last_name: patient.lastName,
@@ -225,6 +235,15 @@ export default function AgentTriage() {
             transition={{ duration: 0.5 }}
             className="space-y-6"
           >
+            {/* Case Number Banner */}
+            <div className="flex items-center justify-center">
+              <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-full shadow-lg">
+                <span className="text-sm font-bold text-white">
+                  Case Number: {caseNumber}
+                </span>
+              </div>
+            </div>
+
             {/* Patient Info Panel */}
             <PatientInfoPanel patient={patient} />
             

@@ -8,8 +8,6 @@ import Dashboard from "./Dashboard";
 
 import AgentTriage from "./AgentTriage";
 
-import AdminRules from "./AdminRules";
-
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -21,8 +19,6 @@ const PAGES = {
     Dashboard: Dashboard,
     
     AgentTriage: AgentTriage,
-    
-    AdminRules: AdminRules,
     
 }
 
@@ -58,8 +54,6 @@ function PagesContent() {
                 <Route path="/Dashboard" element={<Dashboard />} />
                 
                 <Route path="/AgentTriage" element={<AgentTriage />} />
-                
-                <Route path="/AdminRules" element={<AdminRules />} />
                 
             </Routes>
         </Layout>

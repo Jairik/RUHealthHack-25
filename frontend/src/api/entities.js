@@ -1,5 +1,3 @@
-import { base44 } from './base44Client';
-
 
 export const TriageCase = base44.entities.TriageCase;
 

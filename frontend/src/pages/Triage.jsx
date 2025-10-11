@@ -99,16 +99,32 @@ Chronic Conditions: ${formData.medical_history.chronic_conditions.join(", ") || 
 Referral Reason: ${formData.referral_reason}
 
 Determine risk level (low/medium/high) based on symptom severity.`;
-      
-      const triageData = {
-        user_email: user.email,
-        ...formData,
-        ...aiResponse,
-        status: "pending"
-      };
 
-      setResult(savedCase);
-      setStep(4);
+      // const aiResponse = await base44.integrations.Core.InvokeLLM({
+      //   prompt,
+      //   response_json_schema: {
+      //     type: "object",
+      //     properties: {
+      //       recommendation: { type: "string" },
+      //       confidence_score: { type: "number" },
+      //       clinical_explanation: { type: "string" },
+      //       risk_level: { type: "string" }
+      //     }
+      //   }
+      // });
+
+      // const user = await base44.auth.me();
+      
+      // const triageData = {
+      //   user_email: user.email,
+      //   ...formData,
+      //   ...aiResponse,
+      //   status: "pending"
+      // };
+
+      // const savedCase = await base44.entities.TriageCase.create(triageData);
+      // setResult(savedCase);
+      // setStep(4);
     } catch (error) {
       console.error("Error analyzing symptoms:", error);
       alert("Error analyzing symptoms. Please try again.");

@@ -3,12 +3,34 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Activity, Heart, Moon, Sun, Menu, X } from "lucide-react";
+import { Home, Activity, Heart, Moon, Sun, Menu, X, LayoutDashboard, BookOpen, Calendar } from "lucide-react";
 
 export default function Layout({ children, currentPageName }) {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+
+  // useEffect(() => {
+  //   const initUser = async () => {
+  //     try {
+  //       const currentUser = await base44.auth.me();
+  //       setUser(currentUser);
+  //     } catch (error) {
+  //       console.log("User not authenticated");
+  //     }
+  //   };
+  //   initUser();
+
+  //   // Check for saved preference, default to dark mode if none exists
+  //   const savedMode = localStorage.getItem("darkMode");
+  //   const isDark = savedMode === null ? true : savedMode === "true";
+  //   setDarkMode(isDark);
+  //   if (isDark) {
+  //     document.documentElement.classList.add("dark");
+  //   } else {
+  //     document.documentElement.classList.remove("dark");
+  //   }
+  // }, []);
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -23,7 +45,10 @@ export default function Layout({ children, currentPageName }) {
 
   const navItems = [
     { name: "Home", path: "Home", icon: Home },
+    { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
     { name: "Triage", path: "Triage", icon: Activity },
+    { name: "Cycle Tracker", path: "CycleTracker", icon: Calendar },
+    { name: "Resources", path: "Resources", icon: BookOpen },
   ];
 
   const isActive = (path) => {

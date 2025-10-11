@@ -6,6 +6,12 @@ import Triage from "./Triage";
 
 import Template from "./Template";
 
+import Resources from "./Resources";
+
+import Dashboard from "./Dashboard";
+
+import CycleTracker from "./CycleTracker";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -15,6 +21,12 @@ const PAGES = {
     Triage: Triage,
     
     Template: Template,
+    
+    Resources: Resources,
+    
+    Dashboard: Dashboard,
+    
+    CycleTracker: CycleTracker,
     
 }
 
@@ -48,6 +60,12 @@ function PagesContent() {
                 <Route path="/Triage" element={<Triage />} />
                 
                 <Route path="/Template" element={<Template />} />
+                
+                <Route path="/Resources" element={<Resources />} />
+                
+                <Route path="/Dashboard" element={<Dashboard />} />
+                
+                <Route path="/CycleTracker" element={<CycleTracker />} />
                 
             </Routes>
         </Layout>

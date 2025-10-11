@@ -40,6 +40,65 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
+create_client_table_sql: str = """
+    CREATE TABLE IF NOT EXISTS client (
+    client_id SERIAL PRIMARY KEY,
+    client_fn VARCHAR(50),
+    client_ln VARCHAR(50),
+    client_dob DATE,
+    ins_pol_id INT,
+    FOREIGN KEY (ins_pol_id) REFERENCES insurance(ins_id)
+    );
+"""
+create_doctor_table_sql: str = """
+    CREATE TABLE IF NOT EXISTS doctor (
+    doc_id SERIAL PRIMARY KEY,
+    doc_fn VARCHAR(50),
+    doc_ln VARCHAR(50)
+    );
+"""
+create_insurance_table_sql: str = """
+    CREATE TABLE IF NOT EXISTS insurance (
+    ins_id SERIAL PRIMARY KEY,
+    ins_pol VARCHAR(50) NOT NULL
+    );
+"""
+create_doctor_insurance_table_sql: str = """
+    CREATE TABLE IF NOT EXISTS doctor_insurance (
+    FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id),
+    FOREIGN KEY (ins_id) REFRENCES insurance(ins_id)
+);
+"""
+create_triage_question_table_sql: str = """
+    CREATE TABLE IF NOT EXISTS triage_question (
+    triage_answer VARCHAR(1024),
+    triage_question VARRCHAR(256),
+    FOREIGN KEY(triage_id) REFERENCES triage(triage_id)
+    );
+"""
+create_triage_table_sql: str = """
+CREATE TABLE IF NOT EXISTS triage (
+    triage_id SERIAL PRIMARY KEY,
+    agent_id INT,
+    client_id INT NOT NULL,
+    date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    re_conf INT DEFAULT 0,
+    mfm_conf INT DEFAULT 0,
+    uro_conf INT DEFAULT 0,
+    gob_conf INT DEFAULT 0,
+    mis_conf INT DEFAULT 0,
+    go_conf INT DEFAULT 0,
+    doc_id1 INT,
+    doc_id2 INT,
+    doc_id3 INT,
+    agent_notes TEXT,
+    FOREIGN KEY (client_id) REFERENCES client(client_id),
+    FOREIGN KEY (doc_id1) REFERENCES doctor(doctor_id),
+    FOREIGN KEY (doc_id2) REFERENCES doctor(doctor_id),
+    FOREIGN KEY (doc_id3) REFERENCES doctor(doctor_id)
+);
+"""
+
 
 try:
     execute_sql(create_table_sql)

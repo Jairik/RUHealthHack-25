@@ -9,5 +9,14 @@ class Example(BaseModel):
     description: str = Field(None, description="Optional description of the example")
     
 class getUser(BaseModel):
-    username: str = Field(..., description="Username of the user")
-    password: str = Field(..., description="Password of the user")
+    first_name: str = Field(..., description="First name of the user")
+    last_name: str = Field(..., description="Last name of the user")
+    dob: str = Field(..., description="Date of birth of the user")
+    
+class patientInfo(BaseModel):
+    patient_id: str = Field(..., description="Unique identifier for the patient")
+    first_name: int = Field(..., description="First name of the patient")
+    last_name: str = Field(..., description="Last name of the patient")
+    dob: str = Field(..., description="Date of birth of the patient")
+    patient_history: str = Field(..., description="Medical history of the patient")
+    

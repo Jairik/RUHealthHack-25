@@ -116,7 +116,7 @@ def inference(
     #sclr.idx variable from long term storage
     #these variables is reinitialized upon first_call and appends once per NO/FALSE on question
 
-    print(f"loaded last_qid: {last_qid}")
+    #print(f"loaded last_qid: {last_qid}")
 
     sspec_full = pd.read_csv('./data/symptoms_full.csv').values[:, 1:3]
     sspec_map = sspec_full[:, 0].astype(np.int64)
@@ -135,7 +135,7 @@ def inference(
 
         else:
             #pass question case!! should be absolutely no change
-            pass
+            dont_ask.append(last_qid)
 
     if(len(sclr_idx)>0):
         #here for inference
@@ -158,8 +158,8 @@ def inference(
     dump(work_str,'./model/work.str')
 
     #need to solve for highest proba outside strongest sspec aggregation        
-    mean_by_sspec = np.bincount(sspec_map, weights=out["probs"])
-    print(mean_by_sspec)
+    #mean_by_sspec = np.bincount(sspec_map, weights=out["probs"])
+    #print(mean_by_sspec)
 
     if(first_call==False):
         probs  = np.asarray(out["probs"], dtype=float)         # shape (N,)
@@ -210,10 +210,7 @@ def inference(
     doc_results = {
         "Best Match":doc_names[doc_order_idx[0],1],
         "Second Match":doc_names[doc_order_idx[1],1],
-        "Third Match":doc_names[doc_order_idx[2],1],
-        "Fourth Match":doc_names[doc_order_idx[3],1],
-        "Fifth Match":doc_names[doc_order_idx[4],1],
-        "Sixth Match":doc_names[doc_order_idx[5],1],
+        "Third Match":doc_names[doc_order_idx[2],1]
     }
 
     sspec_sum = np.zeros(6, dtype=np.float32)

@@ -4,3 +4,7 @@ awscliv2.zip
 export_keys.sh
 /backend/RUHealthHacks
 /backend/data/hefty
+/infra/.terraform
+/infra/infra-db-only/.terraform
+configure_envs.sh
+.env

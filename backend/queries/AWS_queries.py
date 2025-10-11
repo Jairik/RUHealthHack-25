@@ -1,2 +1,2 @@
-''' Queries for database interactions '''
+''' Queries for all AWS Aurora database interactions '''
 

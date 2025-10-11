@@ -17,7 +17,6 @@ export default function Dashboard() {
 
   const stats = {
     total: triageCases.length,
-    pending: triageCases.filter(c => c.status === 'pending').length,
     completed: triageCases.filter(c => c.status === 'completed' || c.status === 'referred').length,
     highRisk: triageCases.filter(c => c.risk_level === 'high').length
   };
@@ -85,10 +84,9 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {[
             { label: "Total Triages", value: stats.total, icon: FileText, gradient: "from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500" },
-            { label: "Pending Review", value: stats.pending, icon: Clock, gradient: "from-cyan-500 to-teal-400 dark:from-pink-600 dark:to-rose-500" },
             { label: "Completed", value: stats.completed, icon: CheckCircle2, gradient: "from-teal-500 to-green-400 dark:from-rose-600 dark:to-orange-500" },
             { label: "High Priority", value: stats.highRisk, icon: AlertTriangle, gradient: "from-orange-500 to-red-400 dark:from-orange-600 dark:to-red-500" }
           ].map((stat, index) => (
@@ -214,7 +212,7 @@ export default function Dashboard() {
                 </button>
               </Link>
               <Link to={createPageUrl("Resources")}>
-                <button className="text-lg px-10 py-6 bg-white/10 backdrop-blur-xl border-2 border-white hover:bg-white/20 text-white font-black rounded inline-flex items-center justify-center">
+                <button className="text-lg px-10 py-6 bg-white/10 backdrop-blur-xl border-2 border-white hover:bg-white/20 hover:scale-105 text-white font-black rounded inline-flex items-center justify-center">
                   <FileText className="w-5 h-5 mr-2" />
                   Browse Resources
                 </button>

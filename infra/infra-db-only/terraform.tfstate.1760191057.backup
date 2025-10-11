@@ -1,0 +1,119 @@
+{
+  "version": 4,
+  "terraform_version": "1.13.3",
+  "serial": 7,
+  "lineage": "923046c1-973c-8976-88ea-a9251a8dbe1a",
+  "outputs": {},
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "aws_db_subnet_group",
+      "name": "aurora",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:rds:us-east-1:533267217230:subgrp:dev-dbsubnet",
+            "description": "Managed by Terraform",
+            "id": "dev-dbsubnet",
+            "name": "dev-dbsubnet",
+            "name_prefix": "",
+            "subnet_ids": [
+              "subnet-05dc86cec054951fa",
+              "subnet-07356d8c8091f5196"
+            ],
+            "supported_network_types": [
+              "IPV4"
+            ],
+            "tags": null,
+            "tags_all": {},
+            "vpc_id": "vpc-02d1779ee75b8cabe"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_kms_key",
+      "name": "db",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "status": "tainted",
+          "schema_version": 0,
+          "attributes": {
+            "arn": null,
+            "bypass_policy_lockout_safety_check": false,
+            "custom_key_store_id": null,
+            "customer_master_key_spec": "SYMMETRIC_DEFAULT",
+            "deletion_window_in_days": null,
+            "description": "dev-db kms",
+            "enable_key_rotation": false,
+            "id": "db29a033-ff54-455b-8cf1-75a6ab5b94c4",
+            "is_enabled": true,
+            "key_id": null,
+            "key_usage": "ENCRYPT_DECRYPT",
+            "multi_region": null,
+            "policy": null,
+            "rotation_period_in_days": null,
+            "tags": null,
+            "tags_all": null,
+            "timeouts": null,
+            "xks_key_id": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDB9fQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "random_password",
+      "name": "db",
+      "provider": "provider[\"registry.terraform.io/hashicorp/random\"]",
+      "instances": [
+        {
+          "schema_version": 3,
+          "attributes": {
+            "bcrypt_hash": "$2a$10$XLW.mObnfUk08VH18taAx.aa6JCbeAiQUZx7DRBEq3j/8Y5m1Hity",
+            "id": "none",
+            "keepers": null,
+            "length": 24,
+            "lower": true,
+            "min_lower": 0,
+            "min_numeric": 0,
+            "min_special": 0,
+            "min_upper": 0,
+            "number": true,
+            "numeric": true,
+            "override_special": null,
+            "result": ":iG{7OGdR!a(I#3vmBPQ60c=",
+            "special": true,
+            "upper": true
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "bcrypt_hash"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "result"
+              }
+            ]
+          ],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

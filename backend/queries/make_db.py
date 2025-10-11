@@ -10,15 +10,15 @@ Aurora cluster must have the Data API enabled
 
 import boto3
 import json
+from dotenv import load_dotenv
 import os
+from pathlib import Path
+from AWS_connect import get_rds_client, get_envs
 
-#Pulling variables fron .env file
-DB_CLUSTER_ARN = os.getenv("DB_CLUSTER_ARN", "arn:aws:rds:us-east-1:533267217230:cluster:tf-XXXXXXXXXXXXXXX")
-DB_SECRET_ARN = os.getenv("DB_SECRET_ARN", "arn:aws:secretsmanager:us-east-1:533267217230㊙️dev/db-credentials-lVHRG7")
-DB_NAME = os.getenv("DB_NAME", "appdb")
-
-#Create the boto3 client for the Data API
-rds_data = boto3.client("rds-data", region_name="us-east-1")
+# Get the client from AWS_connect
+rds_data = get_rds_client()
+DB_CLUSTER_ARN, DB_SECRET_ARN, DB_NAME = get_envs()
+print(rds_data)
 
 #Helper function to execute SQL
 def execute_sql(sql: str):
@@ -43,9 +43,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 try:
     execute_sql(create_table_sql)
-    print("✅ Table 'users' created or already exists.")
+    print("Table 'users' created or already exists.")
 except Exception as e:
-    print("❌ Failed to create table:", e)
+    print("Failed to create table:", e)
 
 #Verifying table creation
 try:
@@ -54,4 +54,4 @@ try:
     for record in result.get("records", []):
         print(" -", record[0]["stringValue"])
 except Exception as e:
-    print("❌ Failed to verify tables:", e)
+    print("Failed to verify tables:", e)

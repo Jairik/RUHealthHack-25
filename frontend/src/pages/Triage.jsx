@@ -133,7 +133,6 @@ export default function Triage() {
         Current Medications: ${formData.medical_history.current_medications || 'None reported'}
         Allergies: ${formData.medical_history.allergies || 'None reported'}
         Previous OB/GYN Surgeries: ${formData.medical_history.previous_surgeries ? 'Yes' : 'No'}
-        Bleeding/Clotting Disorder: ${formData.medical_history.bleeding_disorder ? 'Yes' : 'No'}
         Chronic Conditions: ${formData.medical_history.chronic_conditions.length > 0 ? formData.medical_history.chronic_conditions.join(', ') : 'None reported'}
 
         ADDITIONAL NOTES:

@@ -39,7 +39,7 @@ export default function Triage() {
 
   // Add redFlags array after commonSymptoms:
   const redFlags = [
-    "Severe pain (8-10/10)",
+    "Labor pain",
     "Heavy bleeding (>1 pad/hour)",
     "No fetal movement",
     "Chest pain/severe shortness of breath",

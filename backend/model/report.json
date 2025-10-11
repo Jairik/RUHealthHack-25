@@ -1,0 +1,9 @@
+{
+  "classes_kept_ge3": 140,
+  "best_epoch": 20,
+  "test_accuracy": 0.5142857142857142,
+  "test_macro_f1": 0.44857142857142857,
+  "test_micro_f1": 0.5142857142857142,
+  "test_top3_accuracy": 0.8928571428571429,
+  "test_top5_accuracy": 0.9642857142857143
+}

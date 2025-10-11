@@ -1,12 +1,12 @@
 import Layout from "./Layout.jsx";
 
-import Home from "./Home.jsx";
+import Home from "./Home";
 
-import Template from "./Template.jsx";
+import Template from "./Template";
 
-import Dashboard from "./Dashboard.jsx";
+import Dashboard from "./Dashboard";
 
-import AgentTriage from "./AgentTriage.jsx";
+import AgentTriage from "./AgentTriage";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 

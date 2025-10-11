@@ -156,7 +156,48 @@ export default function Triage() {
         top_recommendation: "General OB/GYN",
         risk_level: formData.red_flags && formData.red_flags.length > 0 ? "high" : "medium",
         clinical_explanation: "Based on the reported symptoms and medical history, initial evaluation by a general OB/GYN specialist is recommended.",
+        algorithm_version: "v1.2.3-mock",
+        model_name: "obgyn-triage-nlp-mock",
+        processing_timestamp: new Date().toISOString(),
         triage_data: triageString
+      };
+
+      //Mock Audit Entry
+      const auditLogEntry = {
+        // Unique identifiers
+        triage_id: `TRIAGE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        
+        // Input data
+        input_data: {
+          raw_form_data: formData,
+          triage_text: triageString,
+          red_flags_present: formData.red_flags && formData.red_flags.length > 0,
+          red_flags_list: formData.red_flags || []
+        },
+        
+        // Algorithm/Model information
+        algorithm_info: {
+          version: mockNLPResult.algorithm_version,
+          model_name: mockNLPResult.model_name,
+          processing_timestamp: mockNLPResult.processing_timestamp
+        },
+        
+        // Output/Recommendation
+        recommendation: {
+          top_specialty: mockNLPResult.top_recommendation,
+          risk_level: mockNLPResult.risk_level,
+          all_rankings: mockNLPResult.subspecialty_rankings,
+          clinical_explanation: mockNLPResult.clinical_explanation,
+          confidence_score: mockNLPResult.subspecialty_rankings[0].score
+        },
+        
+        // Metadata
+        metadata: {
+          user_agent: navigator.userAgent,
+          session_id: 'MOCK-SESSION-' + Math.random().toString(36).substr(2, 9),
+          form_completion_time_ms: 45000 // Mock: 45 seconds
+        }
       };
 
       setResult(mockNLPResult);

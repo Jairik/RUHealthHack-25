@@ -4,12 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev:frontend": "vite",
+    "dev:backend": "../.venv/bin/python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000 --app-dir ..",
     "build": "tsc -b && vite build",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "concurrently": "^9.2.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

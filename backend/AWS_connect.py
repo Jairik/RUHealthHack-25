@@ -29,6 +29,5 @@ def test_connection(s3_client):
     else:
         print("Failed to connect to S3.")
     
-    
 client = connect_to_aws('s3')
 test_connection(client)

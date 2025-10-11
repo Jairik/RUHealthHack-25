@@ -22,6 +22,8 @@ export default function Triage() {
     red_flags: [],
     medical_history: {
       is_pregnant: false,
+      menstrual_cycle: "",
+      last_menstrual_period: "",
       previous_surgeries: false,
       chronic_conditions: []
     },
@@ -255,49 +257,113 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                     />
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        formData.medical_history.is_pregnant
-                          ? "border-4 border-blue-600 dark:border-purple-500 bg-blue-100 dark:bg-purple-900 scale-105 shadow-xl"
-                          : "border-3 border-blue-300 dark:border-purple-700 bg-white dark:bg-gray-950 hover:scale-105 hover:shadow-lg"
-                      }`}
-                      onClick={() => setFormData({
-                        ...formData,
-                        medical_history: {
-                          ...formData.medical_history,
-                          is_pregnant: !formData.medical_history.is_pregnant
-                        }
-                      })}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Currently Pregnant?</span>
-                          {formData.medical_history.is_pregnant && (
-                            <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <div className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <Card
+                        className={`cursor-pointer transition-all ${
+                          formData.medical_history.is_pregnant
+                            ? "border-4 border-blue-600 dark:border-purple-500 bg-blue-100 dark:bg-purple-900 scale-105 shadow-xl"
+                            : "border-3 border-blue-300 dark:border-purple-700 bg-white dark:bg-gray-950 hover:scale-105 hover:shadow-lg"
+                        }`}
+                        onClick={() => setFormData({
+                          ...formData,
+                          medical_history: {
+                            ...formData.medical_history,
+                            is_pregnant: !formData.medical_history.is_pregnant
+                          }
+                        })}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-lg text-blue-900 dark:text-purple-200">Currently Pregnant?</span>
+                            {formData.medical_history.is_pregnant && (
+                              <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
 
-                    {formData.medical_history.is_pregnant && (
-                      <div>
-                        <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
-                          Weeks Pregnant:
-                        </label>
-                        <Input
-                          type="number"
-                          value={formData.medical_history.gestational_age}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            medical_history: {
-                              ...formData.medical_history,
-                              gestational_age: e.target.value
-                            }
-                          })}
-                          placeholder="Enter weeks"
-                          className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
-                        />
+                      {formData.medical_history.is_pregnant && (
+                        <div>
+                          <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                            Weeks Pregnant:
+                          </label>
+                          <Input
+                            type="number"
+                            value={formData.medical_history.gestational_age}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              medical_history: {
+                                ...formData.medical_history,
+                                gestational_age: e.target.value
+                              }
+                            })}
+                            placeholder="Enter weeks"
+                            className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {!formData.medical_history.is_pregnant && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                            Menstrual Cycle:
+                          </label>
+                          <div className="flex gap-4">
+                            <Badge
+                              className={`cursor-pointer px-6 py-3 text-base font-bold transition-all flex-1 justify-center ${
+                                formData.medical_history.menstrual_cycle === "regular"
+                                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 text-white border-0 shadow-lg scale-105"
+                                  : "bg-blue-100 dark:bg-purple-900 text-blue-800 dark:text-purple-200 border-2 border-blue-400 dark:border-purple-600 hover:scale-105"
+                              }`}
+                              onClick={() => setFormData({
+                                ...formData,
+                                medical_history: {
+                                  ...formData.medical_history,
+                                  menstrual_cycle: "regular"
+                                }
+                              })}
+                            >
+                              Regular
+                            </Badge>
+                            <Badge
+                              className={`cursor-pointer px-6 py-3 text-base font-bold transition-all flex-1 justify-center ${
+                                formData.medical_history.menstrual_cycle === "irregular"
+                                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-purple-600 dark:to-pink-500 text-white border-0 shadow-lg scale-105"
+                                  : "bg-blue-100 dark:bg-purple-900 text-blue-800 dark:text-purple-200 border-2 border-blue-400 dark:border-purple-600 hover:scale-105"
+                              }`}
+                              onClick={() => setFormData({
+                                ...formData,
+                                medical_history: {
+                                  ...formData.medical_history,
+                                  menstrual_cycle: "irregular"
+                                }
+                              })}
+                            >
+                              Irregular
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                            Last Menstrual Period (LMP):
+                          </label>
+                          <Input
+                            type="date"
+                            value={formData.medical_history.last_menstrual_period}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              medical_history: {
+                                ...formData.medical_history,
+                                last_menstrual_period: e.target.value
+                              }
+                            })}
+                            className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>

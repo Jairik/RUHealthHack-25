@@ -585,33 +585,70 @@ export default function Triage() {
                       </div>
                     )}
 
+                    {formData.red_flags && formData.red_flags.length > 0 && (
+                      <div className="p-6 bg-red-100 dark:bg-red-900 rounded-2xl border-3 border-red-400 dark:border-red-700">
+                        <h3 className="font-black text-xl mb-3 text-red-900 dark:text-red-100 flex items-center gap-2">
+                          <AlertTriangle className="w-6 h-6" />
+                          Red Flags Reported
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.red_flags.map(flag => (
+                            <Badge key={flag} className="bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100 border-2 border-red-400 dark:border-red-600 px-4 py-2 font-bold text-base">
+                              {flag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="p-6 bg-teal-100 dark:bg-rose-900 rounded-2xl border-3 border-teal-300 dark:border-rose-700">
-                      <h3 className="font-black text-xl mb-4 text-teal-900 dark:text-rose-100">Medical History</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {formData.medical_history.is_pregnant && (
-                          <Badge className="bg-blue-200 dark:bg-purple-900 text-blue-900 dark:text-purple-100 border-2 border-blue-400 dark:border-purple-600 px-4 py-2 font-bold">
-                            Currently Pregnant
-                          </Badge>
+                      <h3 className="font-black text-xl mb-4 text-teal-900 dark:text-rose-100">Pregnancy & Menstrual Status</h3>
+                      <div className="space-y-2 text-teal-800 dark:text-rose-200 text-lg font-semibold">
+                        {formData.medical_history.is_pregnant ? (
+                          <>
+                            <p>• Currently Pregnant: Yes</p>
+                            {formData.medical_history.gestational_age && (
+                              <p>• Gestational Age: {formData.medical_history.gestational_age} weeks</p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p>• Currently Pregnant: No</p>
+                            {formData.medical_history.menstrual_cycle && (
+                              <p>• Menstrual Cycle: {formData.medical_history.menstrual_cycle}</p>
+                            )}
+                            {formData.medical_history.last_menstrual_period && (
+                              <p>• Last Menstrual Period: {formData.medical_history.last_menstrual_period}</p>
+                            )}
+                          </>
                         )}
-                        {formData.medical_history.previous_surgeries && (
-                          <Badge className="bg-cyan-200 dark:bg-pink-900 text-cyan-900 dark:text-pink-100 border-2 border-cyan-400 dark:border-pink-600 px-4 py-2 font-bold">
-                            Previous Surgeries
-                          </Badge>
-                        )}
-                        {formData.medical_history.chronic_conditions.map(condition => (
-                          <Badge key={condition} className="bg-teal-200 dark:bg-rose-900 text-teal-900 dark:text-rose-100 border-2 border-teal-400 dark:border-rose-600 px-4 py-2 font-bold">
-                            {condition}
-                          </Badge>
-                        ))}
                       </div>
                     </div>
 
-                    {formData.referral_reason && (
-                      <div className="p-6 bg-sky-100 dark:bg-orange-900 rounded-2xl border-3 border-sky-300 dark:border-orange-700">
-                        <h3 className="font-black text-xl mb-3 text-sky-900 dark:text-orange-100">Referral Reason</h3>
-                        <p className="text-sky-800 dark:text-orange-200 text-lg font-semibold">{formData.referral_reason}</p>
+                    <div className="p-6 bg-sky-100 dark:bg-indigo-900 rounded-2xl border-3 border-sky-300 dark:border-indigo-700">
+                      <h3 className="font-black text-xl mb-4 text-sky-900 dark:text-indigo-100">Medical History</h3>
+                      <div className="space-y-2 text-sky-800 dark:text-indigo-200 text-lg font-semibold">
+                        {formData.medical_history.current_medications && (
+                          <p>• Current Medications: {formData.medical_history.current_medications}</p>
+                        )}
+                        {formData.medical_history.allergies && (
+                          <p>• Allergies: {formData.medical_history.allergies}</p>
+                        )}
+                        <p>• Previous OB/GYN Surgeries: {formData.medical_history.previous_surgeries ? 'Yes' : 'No'}</p>
+                        {formData.medical_history.chronic_conditions.length > 0 && (
+                          <div>
+                            <p className="mb-2">• Chronic Conditions:</p>
+                            <div className="flex flex-wrap gap-2 ml-4">
+                              {formData.medical_history.chronic_conditions.map(condition => (
+                                <Badge key={condition} className="bg-sky-200 dark:bg-indigo-800 text-sky-900 dark:text-indigo-100 border-2 border-sky-400 dark:border-indigo-600 px-3 py-1 font-bold">
+                                  {condition}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   <div className="flex justify-between pt-6">

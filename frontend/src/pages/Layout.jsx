@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -10,32 +9,25 @@ export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
 
-  // useEffect(() => {
-  //   const initUser = async () => {
-  //     try {
-  //       const currentUser = await base44.auth.me();
-  //       setUser(currentUser);
-  //     } catch (error) {
-  //       console.log("User not authenticated");
-  //     }
-  //   };
-  //   initUser();
+  useEffect(() => {
+    // ✅ Initialize dark mode preference — dark mode is default
+    const savedMode = localStorage.getItem("darkMode");
+    const isDark = savedMode === null ? true : savedMode === "true";
 
-  //   // Check for saved preference, default to dark mode if none exists
-  //   const savedMode = localStorage.getItem("darkMode");
-  //   const isDark = savedMode === null ? true : savedMode === "true";
-  //   setDarkMode(isDark);
-  //   if (isDark) {
-  //     document.documentElement.classList.add("dark");
-  //   } else {
-  //     document.documentElement.classList.remove("dark");
-  //   }
-  // }, []);
+    setDarkMode(isDark);
+
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem("darkMode", newDarkMode.toString());
+
     if (newDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
@@ -51,9 +43,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Resources", path: "Resources", icon: BookOpen },
   ];
 
-  const isActive = (path) => {
-    return currentPageName === path;
-  };
+  const isActive = (path) => currentPageName === path;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-blue-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-purple-950 dark:to-gray-900">
@@ -142,8 +132,8 @@ export default function Layout({ children, currentPageName }) {
           <div className="md:hidden border-t border-blue-200 dark:border-purple-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
             <div className="px-6 py-4 space-y-2">
               {navItems.map((item) => (
-                <Link 
-                  key={item.path} 
+                <Link
+                  key={item.path}
                   to={createPageUrl(item.path)}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -178,9 +168,7 @@ export default function Layout({ children, currentPageName }) {
       </nav>
 
       {/* Main Content */}
-      <main>
-        {children}
-      </main>
+      <main>{children}</main>
 
       {/* Footer */}
       <footer className="mt-auto border-t border-blue-200 dark:border-purple-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">

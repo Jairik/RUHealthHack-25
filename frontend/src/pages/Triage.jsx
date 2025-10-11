@@ -119,6 +119,7 @@ Subspecialties:
 Patient Information:
 Primary Symptoms: ${formData.primary_symptoms}
 Details: ${formData.symptom_details}
+Red Flag: ${formData.red_flags}
 Pregnant: ${formData.medical_history.is_pregnant ? "Yes" : "No"}
 Previous Surgeries: ${formData.medical_history.previous_surgeries ? "Yes" : "No"}
 Chronic Conditions: ${formData.medical_history.chronic_conditions.join(", ") || "None"}

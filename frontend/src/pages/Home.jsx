@@ -38,7 +38,7 @@ export default function Home() {
   const stats = [
     { label: "Subspecialties", value: "6", icon: Brain },
     { label: "Doctor Network", value: "20+", icon: Users },
-    { label: "Triage Accuracy", value: "97%", icon: TrendingUp },
+    { label: "Triage Accuracy", value: "97~%", icon: TrendingUp },
     { label: "HIPAA Compliant", value: "100%", icon: Lock }
   ];
 
@@ -60,7 +60,7 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-200 dark:bg-purple-900 rounded-full mb-8 border-2 border-indigo-300 dark:border-purple-700">
               <Headphones className="w-5 h-5 text-indigo-700 dark:text-purple-300" />
               <span className="text-sm font-bold text-indigo-900 dark:text-purple-200">
-                Call Center Agent Platform
+                Call Center Agent Platform - RU Health Hack
               </span>
             </div>
             

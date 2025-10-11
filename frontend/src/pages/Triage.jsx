@@ -23,11 +23,12 @@ export default function Triage() {
     medical_history: {
       is_pregnant: false,
       menstrual_cycle: "",
+      current_medications: "",
+      allergies: "",
       last_menstrual_period: "",
       previous_surgeries: false,
       chronic_conditions: []
-    },
-    referral_reason: ""
+    }
   });
 
   const commonSymptoms = [
@@ -108,52 +109,38 @@ export default function Triage() {
     setLoading(true);
     
     try {
-      const prompt = `You are a medical triage AI for OB/GYN care. Based on the following patient information, recommend ONE of these subspecialties and provide a confidence score (0-100) and clinical explanation:
+     const triageString = `
+        PATIENT TRIAGE INFORMATION
+        ==========================
 
-Subspecialties:
-- Maternal-Fetal Medicine (high-risk pregnancy)
-- Urogynecology (pelvic floor disorders, incontinence)
-- Minimally Invasive Surgery (fibroids, endometriosis requiring surgery)
-- Reproductive Endocrinology (fertility, hormonal issues)
-- Gynecologic Oncology (suspected cancer, abnormal cells)
-- General OB/GYN (routine care, common issues)
+        PRIMARY SYMPTOMS:
+        ${formData.primary_symptoms}
 
-Patient Information:
-Primary Symptoms: ${formData.primary_symptoms}
-Details: ${formData.symptom_details}
-Red Flag: ${formData.red_flags}
-Pregnant: ${formData.medical_history.is_pregnant ? "Yes" : "No"}
-Previous Surgeries: ${formData.medical_history.previous_surgeries ? "Yes" : "No"}
-Chronic Conditions: ${formData.medical_history.chronic_conditions.join(", ") || "None"}
-Referral Reason: ${formData.referral_reason}
+        SYMPTOM DETAILS:
+        ${formData.symptom_details || 'Not provided'}
 
-Determine risk level (low/medium/high) based on symptom severity.`;
+        RED FLAGS:
+        ${formData.red_flags && formData.red_flags.length > 0 ? formData.red_flags.join('; ') : 'None reported'}
 
-      // const aiResponse = await base44.integrations.Core.InvokeLLM({
-      //   prompt,
-      //   response_json_schema: {
-      //     type: "object",
-      //     properties: {
-      //       recommendation: { type: "string" },
-      //       confidence_score: { type: "number" },
-      //       clinical_explanation: { type: "string" },
-      //       risk_level: { type: "string" }
-      //     }
-      //   }
-      // });
+        PREGNANCY STATUS:
+        ${formData.medical_history.is_pregnant ? `Yes - ${formData.medical_history.gestational_age} weeks` : 'Not pregnant'}
 
-      // const user = await base44.auth.me();
-      
-      // const triageData = {
-      //   user_email: user.email,
-      //   ...formData,
-      //   ...aiResponse,
-      //   status: "pending"
-      // };
+        MENSTRUAL HISTORY:
+        Cycle: ${formData.medical_history.menstrual_cycle || 'Not specified'}
+        Last Menstrual Period: ${formData.medical_history.last_menstrual_period || 'Not provided'}
 
-      // const savedCase = await base44.entities.TriageCase.create(triageData);
-      // setResult(savedCase);
-      // setStep(4);
+        MEDICAL HISTORY:
+        Current Medications: ${formData.medical_history.current_medications || 'None reported'}
+        Allergies: ${formData.medical_history.allergies || 'None reported'}
+        Previous OB/GYN Surgeries: ${formData.medical_history.previous_surgeries ? 'Yes' : 'No'}
+        Bleeding/Clotting Disorder: ${formData.medical_history.bleeding_disorder ? 'Yes' : 'No'}
+        Chronic Conditions: ${formData.medical_history.chronic_conditions.length > 0 ? formData.medical_history.chronic_conditions.join(', ') : 'None reported'}
+
+        ADDITIONAL NOTES:
+        ${formData.referral_reason || 'None provided'}
+
+        TRIAGE TIMESTAMP: ${new Date().toISOString()}
+              `.trim();
     } catch (error) {
       console.error("Error analyzing symptoms:", error);
       alert("Error analyzing symptoms. Please try again.");
@@ -419,38 +406,50 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-400 dark:from-purple-600 dark:to-pink-500 rounded-3xl flex items-center justify-center shadow-xl">
                       <FileText className="w-8 h-8 text-white" />
                     </div>
-                    Medical History
+                    Quick Medical History
                   </CardTitle>
                   <p className="text-blue-700 dark:text-purple-300 mt-3 text-lg font-semibold">
-                    Help us understand your medical background
+                    Essential information for triage assessment
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-8">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Card
-                      className={`cursor-pointer transition-all ${
-                        formData.medical_history.is_pregnant
-                          ? "border-4 border-blue-600 dark:border-purple-500 bg-blue-100 dark:bg-purple-900 scale-105 shadow-xl"
-                          : "border-3 border-blue-300 dark:border-purple-700 bg-white dark:bg-gray-950 hover:scale-105 hover:shadow-lg"
-                      }`}
-                      onClick={() => setFormData({
+                  <div>
+                    <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                      Current Medications:
+                    </label>
+                    <Input
+                      value={formData.medical_history.current_medications}
+                      onChange={(e) => setFormData({
                         ...formData,
                         medical_history: {
                           ...formData.medical_history,
-                          is_pregnant: !formData.medical_history.is_pregnant
+                          current_medications: e.target.value
                         }
                       })}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Currently Pregnant</span>
-                          {formData.medical_history.is_pregnant && (
-                            <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                      placeholder="List any medications you're currently taking"
+                      className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                    />
+                  </div>
 
+                  <div>
+                    <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
+                      Known Allergies:
+                    </label>
+                    <Input
+                      value={formData.medical_history.allergies}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        medical_history: {
+                          ...formData.medical_history,
+                          allergies: e.target.value
+                        }
+                      })}
+                      placeholder="Medications, foods, or other allergies"
+                      className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
                     <Card
                       className={`cursor-pointer transition-all ${
                         formData.medical_history.previous_surgeries
@@ -467,7 +466,7 @@ Determine risk level (low/medium/high) based on symptom severity.`;
                     >
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
-                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Previous Surgeries</span>
+                          <span className="font-black text-lg text-blue-900 dark:text-purple-200">Previous OB/GYN Surgeries</span>
                           {formData.medical_history.previous_surgeries && (
                             <CheckCircle2 className="w-7 h-7 text-blue-700 dark:text-purple-400" />
                           )}
@@ -478,7 +477,7 @@ Determine risk level (low/medium/high) based on symptom severity.`;
 
                   <div>
                     <label className="block text-base font-bold mb-4 text-blue-800 dark:text-purple-200">
-                      Chronic Conditions (select all that apply):
+                      Relevant Medical Conditions (select all that apply):
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {chronicConditions.map((condition) => (
@@ -499,13 +498,13 @@ Determine risk level (low/medium/high) based on symptom severity.`;
 
                   <div>
                     <label className="block text-base font-bold mb-3 text-blue-800 dark:text-purple-200">
-                      Reason for Seeking Specialist:
+                      Additional Notes (Optional):
                     </label>
                     <Textarea
                       value={formData.referral_reason}
                       onChange={(e) => setFormData({...formData, referral_reason: e.target.value})}
-                      placeholder="Why are you seeking a specialist referral today?"
-                      rows={4}
+                      placeholder="Any other relevant medical information?"
+                      rows={3}
                       className="text-lg bg-white dark:bg-gray-950 text-blue-900 dark:text-purple-100 border-3 border-blue-400 dark:border-purple-600 font-semibold"
                     />
                   </div>

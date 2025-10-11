@@ -47,7 +47,7 @@ const RuleCard = ({ rule, index, onRuleChange }) => {
   const currentSubspecialty =  rule.division;
 
   const handleSubspecialtyChange = (value) => {
-      onRuleChange(index, 'subspecialty', value);
+      onRuleChange(index, 'division', value);
   };
 
   const cardStyleWithColor = {
@@ -280,7 +280,7 @@ const AdminRules = () => {
             ).map(rule => ({
                 ...rule,
                 // Ensure the dynamic subspecialty field is available for updates
-                subspecialty: rule.subspecialty || rule.division 
+                subspecialty: rule.division 
             })); 
             setRules(cleanData);
             setIsLoading(false);

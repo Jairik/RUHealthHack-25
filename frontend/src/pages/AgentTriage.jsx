@@ -30,8 +30,7 @@ export default function AgentTriage() {
 
   // MOCK DATA - Questions pool
   const mockQuestions = [
-    "What is the primary reason for today's call?",
-    "How long have you been experiencing these symptoms?",
+    "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?",
     "Have you noticed any patterns or triggers?",
     "Are you currently taking any medications?",
     "Have you experienced similar issues before?",

@@ -85,3 +85,31 @@ async function getProvider(firstname, lastname, dob) {
     });
     return res.json();
 }
+
+/* Submits the entire conversation to the backend for processing and storing
+* Parameters:
+*   conversation: string transcript of the conversation
+* Returns:
+*   JSON object with success status and any additional info
+*/
+async function submitConversation(conversation) {
+    const url = `${API_BASE_URL}/submit_conversation`;
+    const body = { conversation };
+    const res = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    });
+    return res.json();
+}
+
+// Export everything
+export {
+    getNextQuestion,
+    getLastNameAndDoB,
+    getDoB,
+    getProvider,
+    submitConversation
+};

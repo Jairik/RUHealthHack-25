@@ -1,6 +1,6 @@
 ''' FastAPI endpoints here '''
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from backend import pydantic_models as models
 from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
@@ -11,6 +11,8 @@ from backend.queries.dashboard_query import (
 from backend.model_inference import inference
 
 from backend.model import dashboard_model as model
+from backend.model import triage_model as triage
+from backend.queries import general_queries as gq
 from typing import Any, Optional
 from fastapi import FastAPI, Body, HTTPException
 from typing import Optional
@@ -18,7 +20,7 @@ from backend.queries import dashboard_query as query
 from backend.queries import general_queries as gq
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -45,6 +47,18 @@ def health():
     return {"ok": True}
 
 @app.post("/api/get_user_info")
+<<<<<<< HEAD
+def get_user_info(user: Any = Body(...)):
+    # Minimal happy-path payload that your UI understands
+    return {
+        "results": {
+            "question": "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?",
+            "subspecialty_results": [],
+            "condition_results": [],
+            "doctor_results": {}
+        }
+    }
+=======
 def get_user_info(user: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
@@ -197,3 +211,59 @@ def list_triages(
 
     # If something else came back, surface it for now to avoid opaque 500s.
     return {"items": [], "page": page, "page_size": page_size, "total": 0, "total_pages": 0}
+
+@app.post("/api/triage/start", response_model=triage.StartTriageResponse)
+def api_start_triage(req: triage.StartTriageRequest):
+    """
+    1) create or find client
+    2) create triage row with agent_id + client_id
+    """
+    client_id = gq.q_get_or_create_client(
+        req.client_first_name.strip(),
+        req.client_last_name.strip(),
+        req.client_dob.strip(),
+    )
+    triage_id = gq.q_start_triage(req.agent_id, client_id)
+    return {"triage_id": triage_id, "client_id": client_id}
+
+@app.post("/api/triage/answer", response_model=triage.AnswerResponse)
+def api_answer(req: triage.AnswerRequest):
+    """
+    1) write Q/A to triage_question
+    2) run model inference to get updated confidences and top doctors
+    3) persist those updates on triage row
+    4) return the next question + current state to the frontend
+    """
+    # 1) persist Q/A
+    gq.q_insert_triage_question(req.triage_id, req.question, req.answer)
+
+    # 2) inference - your file already exposes `inference()` used elsewhere
+    #    It returns a dict with "subspecialty_results" and "doctor_results" + maybe "next_question"
+    result = inference(user_text=req.answer)
+
+    # 3) persist updated confidences + doctor picks
+    subs = result.get("subspecialty_results") or []
+    docs = result.get("doctor_results") or []
+    gq.q_update_triage_from_inference(req.triage_id, subs, docs)
+
+    # 4) shape response
+    return {
+        "triage_id": req.triage_id,
+        "next_question": result.get("next_question"),
+        "subspecialty_results": [
+            {"subspecialty_name": s.get("subspecialty_name", ""), "percent_match": int(float(s.get("percent_match", 0)))}
+            for s in subs
+        ],
+        "doctor_results": [
+            {"rank": d.get("rank", ""), "name": d.get("name", "")}
+            for d in docs
+        ],
+    }
+
+@app.post("/api/triage/end")
+def api_end_triage(req: triage.EndTriageRequest):
+    """
+    Finalize triage: store optional agent notes.
+    """
+    gq.q_end_triage(req.triage_id, req.agent_notes)
+    return {"ok": True}

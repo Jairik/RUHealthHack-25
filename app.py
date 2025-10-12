@@ -18,11 +18,8 @@ from fastapi import FastAPI, Body, HTTPException
 from typing import Optional
 from backend.queries import dashboard_query as query
 from backend.queries import general_queries as gq
-
 from datetime import datetime
 from typing import Any, Dict, Optional, List
-
-from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -47,7 +44,6 @@ def health():
     return {"ok": True}
 
 @app.post("/api/get_user_info")
-<<<<<<< HEAD
 def get_user_info(user: Any = Body(...)):
     # Minimal happy-path payload that your UI understands
     return {
@@ -58,13 +54,15 @@ def get_user_info(user: Any = Body(...)):
             "doctor_results": {}
         }
     }
-=======
-def get_user_info(user: Any = Body(...)):
+
+@app.post("/api/set_user_info")
+def set_user_info(user: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
-    # First, check if the patient is found
+    # First, check if the patient is found, adding if they are not
     if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
         gq.addUserInfo(user.first_name, user.last_name, user.dob)
-        patient_history: str = ""
+        patient_history: str = ""  # Can assume empty string, good to go
+    # If patient exists, get their history from Aurora db
     else:
         patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
     # Initial model call to set up patient 'context'
@@ -94,6 +92,9 @@ def get_question(payload: Any = Body(...)):
         if isinstance(ut, str):
             ut = ut.strip()
             user_text = ut if ut else ''
+            # Attempt to add any user text to medical record - proven to be helpful
+            if user_text != '':
+                gq.addMedHistory(user_text)
 
     elif isinstance(payload, int) and not isinstance(payload, bool):
         last_ans = payload
@@ -101,6 +102,9 @@ def get_question(payload: Any = Body(...)):
     elif isinstance(payload, str):
         s = payload.strip()
         user_text = s if s else ''
+        # Attempt to add any user text to medical record - proven to be helpful
+        if user_text != '':
+            gq.addMedHistory(user_text)
 
     print(user_text, last_ans)
 

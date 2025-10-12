@@ -89,11 +89,17 @@ def power_transform(
     
 from pathlib import Path
 
+class_imbalance = np.asarray([0.3088, 0.2683, 0.1244, 0.0874, 0.107, 0.104])
+
 def inference(
     user_text = "", 
     first_call=False,
     last_ans=-1
 ):
+    
+    print("user_text:", user_text)
+    print("first_call:",first_call)
+    print("last_ans:",last_ans)
     model_dir = Path(__file__).resolve().parent / "model"
 
     if(first_call):
@@ -102,6 +108,7 @@ def inference(
         dump([],model_dir / 'sclr.idx')
         dump([],model_dir / 'dont.ask')
         dump(-1,model_dir / 'last.qid')
+        dump(-2,model_dir / 'iter.cnt')
 
     work_str = load(model_dir / 'work.str')
     work_str += user_text
@@ -110,6 +117,7 @@ def inference(
     sclr_idx = load(model_dir / 'sclr.idx')
     dont_ask = load(model_dir / 'dont.ask')
     last_qid = load(model_dir / 'last.qid')
+    iter_cnt = load(model_dir / 'iter.cnt') + 1
 
     out = load_and_predict_softmax(model_dir, work_str, k=6)
     
@@ -158,10 +166,11 @@ def inference(
     dump(sclr_idx,model_dir / 'sclr.idx')
     dump(dont_ask,model_dir / 'dont.ask')
     dump(work_str,model_dir / 'work.str')
+    dump(iter_cnt, model_dir/ 'iter.cnt')
 
     #need to solve for highest proba outside strongest sspec aggregation        
     #mean_by_sspec = np.bincount(sspec_map, weights=out["probs"])
-    #print(mean_by_sspec)
+    #print(np.round(mean_by_sspec, 4))
 
     if(first_call==False):
         probs  = np.asarray(out["probs"], dtype=float)         # shape (N,)
@@ -220,7 +229,9 @@ def inference(
     for i in range(sspec_map.shape[0]):
         sspec_sum[sspec_map[i]] += out['probs'][i]
 
-    p_trans_sums = power_transform(sspec_sum)
+    sspec_sum /= class_imbalance
+
+    p_trans_sums = power_transform(sspec_sum, np.exp(iter_cnt))
 
     sspecs = pd.read_csv(Path('../backend/data/sspec_key_map.csv')).values
 

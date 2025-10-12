@@ -15,11 +15,9 @@ from backend.model import triage_model as triage
 from backend.queries import general_queries as gq
 from typing import Any, Optional
 from fastapi import FastAPI, Body, HTTPException
-
 from typing import Optional
-# from backend.api.dashboard_api import router as dashboard_router
-#backend/queries/dashboard_query.py
 from backend.queries import dashboard_query as query
+from backend.queries import general_queries as gq
 
 from datetime import datetime
 from typing import Any, Dict, Optional, List
@@ -49,6 +47,7 @@ def health():
     return {"ok": True}
 
 @app.post("/api/get_user_info")
+<<<<<<< HEAD
 def get_user_info(user: Any = Body(...)):
     # Minimal happy-path payload that your UI understands
     return {
@@ -59,6 +58,35 @@ def get_user_info(user: Any = Body(...)):
             "doctor_results": {}
         }
     }
+=======
+def get_user_info(patient_history: Any = Body(...)):
+    ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
+    # First, check if the patient is found
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+    if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
+        gq.addUserInfo(user.first_name, user.last_name, user.dob)
+        patient_history: str = ""
+=======
+=======
+>>>>>>> Stashed changes
+    if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
+        patient_history = (patient_history or "").strip()
+        results: dict = inference(user_text=patient_history, first_call=True)
+        return {"results": results}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+    # If found, get the patient history
+    else:
+        patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
+    # Initial model call to set up patient 'context'
+    inference(user_text=patient_history, first_call=True)
+    return { "success": True }
+
+
+>>>>>>> cbb4bfe29daa521c757f24bebefe337b0a2fe429
 
 @app.post("/api/get_question")
 def get_question(payload: Any = Body(...)):

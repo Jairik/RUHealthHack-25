@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS triage (
     triage_id SERIAL PRIMARY KEY,
     agent_id INT,

@@ -8,3 +8,5 @@ export_keys.sh
 /infra/infra-db-only/.terraform
 configure_envs.sh
 .env
+SECRET.txt
+SECRET.sh

@@ -7,6 +7,8 @@ from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
 from backend.model_inference import inference
 from typing import Optional
 from backend.api.dashboard_api import router as dashboard_router
+#backend/queries/dashboard_query.py
+from backend.queries import dashboard_query as query
 
 # Initialize FastAPI app
 app = FastAPI()

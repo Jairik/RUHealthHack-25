@@ -49,14 +49,20 @@ def get_user_info(patient_history: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
         gq.addUserInfo(user.first_name, user.last_name, user.dob)
         patient_history: str = ""
 =======
+=======
+>>>>>>> Stashed changes
     if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
         patient_history = (patient_history or "").strip()
         results: dict = inference(user_text=patient_history, first_call=True)
         return {"results": results}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     # If found, get the patient history
     else:

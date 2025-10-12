@@ -3,19 +3,19 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from backend import pydantic_models as models
-from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
-from backend.queries.dashboard_query import (
-    q_total_triages, q_cases_today, q_cases_this_week,
-    q_search_triages, q_mark_sent_to_epic
-)
+#from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
+#from backend.queries.dashboard_query import (
+#    q_total_triages, q_cases_today, q_cases_this_week,
+#    q_search_triages, q_mark_sent_to_epic
+#)
 from backend.model_inference import inference
 from fastapi import Body
 from backend.model import dashboard_model as model
 from typing import Any, Optional
 from fastapi import FastAPI, Body, HTTPException
 from typing import Optional
-from backend.queries import dashboard_query as query
-from backend.queries import general_queries as gq
+#from backend.queries import dashboard_query as query
+#from backend.queries import general_queries as gq
 
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -48,22 +48,11 @@ def health():
 def get_user_info(patient_history: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
-<<<<<<< Updated upstream
-    if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
-        gq.addUserInfo(user.first_name, user.last_name, user.dob)
-        patient_history: str = ""
-=======
+
     if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
         patient_history = (patient_history or "").strip()
         results: dict = inference(user_text=patient_history, first_call=True)
         return {"results": results}
->>>>>>> Stashed changes
-    # If found, get the patient history
-    else:
-        patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
-    # Initial model call to set up patient 'context'
-    inference(user_text=patient_history, first_call=True)
-    return { "success": True }
 
 
 

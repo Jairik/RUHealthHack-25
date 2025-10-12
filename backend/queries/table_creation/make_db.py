@@ -7,7 +7,7 @@ Requirements:
 """
 
 import boto3
-from AWS_connect import get_rds_client, get_envs
+from .AWS_connect import get_rds_client, get_envs
 
 # Get RDS Data API client
 rds_data = get_rds_client()

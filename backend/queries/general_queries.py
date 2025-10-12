@@ -56,18 +56,33 @@ def q_get_or_create_client(first_name: str, last_name: str, dob_iso: str) -> int
 
 # ---------------- Triage header ----------------
 
-def q_start_triage(agent_id: int, client_id: int) -> int:
-    res = _exec(
-        """
-        INSERT INTO triage (agent_id, client_id, date_time, sent_to_epic)
-        VALUES (:aid, :cid, NOW(), FALSE)
-        RETURNING triage_id;
-        """,
-        [
-            {"name": "aid", "value": {"longValue": int(agent_id)}},
-            {"name": "cid", "value": {"longValue": int(client_id)}},
-        ],
-    )
+def q_start_triage(agent_id: int, client_id: int, timestamp: Optional[str] = None) -> int:
+    # If timestamp provided from frontend, use it; otherwise use server time
+    if timestamp:
+        res = _exec(
+            """
+            INSERT INTO triage (agent_id, client_id, date_time, sent_to_epic)
+            VALUES (:aid, :cid, :ts::TIMESTAMP, FALSE)
+            RETURNING triage_id;
+            """,
+            [
+                {"name": "aid", "value": {"longValue": int(agent_id)}},
+                {"name": "cid", "value": {"longValue": int(client_id)}},
+                {"name": "ts", "value": {"stringValue": timestamp}},
+            ],
+        )
+    else:
+        res = _exec(
+            """
+            INSERT INTO triage (agent_id, client_id, date_time, sent_to_epic)
+            VALUES (:aid, :cid, NOW(), FALSE)
+            RETURNING triage_id;
+            """,
+            [
+                {"name": "aid", "value": {"longValue": int(agent_id)}},
+                {"name": "cid", "value": {"longValue": int(client_id)}},
+            ],
+        )
     return _fetch_one_id(res)
 
 # ---------------- Q/A log ----------------

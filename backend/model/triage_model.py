@@ -6,6 +6,7 @@ class StartTriageRequest(BaseModel):
     client_first_name: str
     client_last_name: str
     client_dob: str  # YYYY-MM-DD
+    timestamp: Optional[str] = None  # ISO 8601 format, e.g. "2024-01-01T12:00:00Z"
 
 class StartTriageResponse(BaseModel):
     triage_id: int

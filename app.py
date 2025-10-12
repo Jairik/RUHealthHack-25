@@ -218,9 +218,11 @@ def api_start_triage(req: triage.StartTriageRequest):
         req.client_last_name.strip(),
         req.client_dob.strip(),
     )
-    triage_id = gq.q_start_triage(req.agent_id, client_id)  # <-- req.agent_id is INT
-    # optional: seed/reset your model per triage if you want
+    triage_id = gq.q_start_triage(req.agent_id, client_id, req.timestamp)  # Pass timestamp
+    
+    # Initialize the model for this triage
     inference(user_text="", first_call=True)
+    
     return {"triage_id": triage_id, "client_id": client_id}
 
 # NOTE: drop response_model here so we can include `condition_results` exactly as model returns

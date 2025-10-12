@@ -60,6 +60,7 @@ export default function AgentTriage() {
         return;
       }
 
+      const localTimestamp = new Date().toISOString();
       const startRes = await fetch('http://localhost:8000/api/triage/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

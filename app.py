@@ -1,18 +1,21 @@
 ''' FastAPI endpoints here '''
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from backend import pydantic_models as models
 from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
+from backend.queries.dashboard_query import (
+    q_total_triages, q_cases_today, q_cases_this_week,
+    q_search_triages, q_mark_sent_to_epic
+)
 from backend.model_inference import inference
 
-from backend.api.dashboard_api import router as dashboard_router
+from backend.model import dashboard_model as model
+
+from typing import Optional
 
 # Initialize FastAPI app
 app = FastAPI()
-
-#incude routers
-app.include_router(dashboard_router)
 
 # Define a patient class
 # patient_info = models.patientInfo()
@@ -43,3 +46,37 @@ def get_question(r: str | int = None):
     else:
         results: dict = inference(last_ans=r)
     return { "results": results }
+
+@app.get("/api/dashboard/stats", response_model=model.DashboardStats)
+def dashboard_stats():
+    return {
+        "total": q_total_triages(),
+        "today": q_cases_today(),
+        "this_week": q_cases_this_week(),
+    }
+
+@app.get("/api/triages", response_model=model.TriageListResponse)
+def list_triages(
+    q: Optional[str] = Query(None, description="Search by patient name, agent id, or case number"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200)
+):
+    return q_search_triages(q, page, page_size)
+
+@app.post("/api/triages/{triage_id}/send-to-epic", response_model=model.TriageSummary)
+def send_to_epic(triage_id: int):
+    updated = q_mark_sent_to_epic(triage_id)
+    one = q_search_triages(term=f"TRG-{str(triage_id).zfill(3)}", page=1, page_size=1)
+    if one["items"]:
+        return one["items"][0]
+    return model.TriageSummary(
+        id=str(updated["triage_id"]) if updated else str(triage_id),
+        case_number=f"TRG-{str(triage_id).zfill(3)}",
+        agent_id=0,
+        created_date="",
+        confidence_score=0,
+        subspecialist_confidences=[],
+        status="completed",
+        sent_to_epic=True,
+        epic_sent_date=str(updated.get("epic_sent_date")) if updated else None
+    )

@@ -21,6 +21,9 @@ from backend.queries import general_queries as gq
 from datetime import datetime
 from typing import Any, Dict, Optional, List
 from backend.queries.generate_fhir import build_referral_json
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -65,7 +68,7 @@ def set_user_info(user: Any = Body(...)):
         patient_history: str = ""  # Can assume empty string, good to go
     # If patient exists, get their history from Aurora db
     else:
-        patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
+        patient_history: str = gq.get_patient_history(user.first_name, user.last_name, user.dob)
     # Initial model call to set up patient 'context'
     inference(user_text=patient_history, first_call=True)
     return { "success": True }
@@ -84,7 +87,8 @@ def get_question(payload: Any = Body(...)):
     user_text: Optional[str] = ''
 
     if isinstance(payload, dict):
-        la = payload.get("last_ans", -1)
+        payload = sanitize_json(payload)
+        la = int(payload.get("last_ans", -1))
         ut = payload.get("user_text", '')
         # map int to last_ans (avoid treating bool as int)
         if isinstance(la, int) and not isinstance(la, bool):
@@ -94,8 +98,8 @@ def get_question(payload: Any = Body(...)):
             ut = ut.strip()
             user_text = ut if ut else ''
             # Attempt to add any user text to medical record - proven to be helpful
-            if user_text != '':
-                gq.addMedHistory(user_text)
+            #if user_text != '':
+                #gq.addMedHistory(user_text)
 
     elif isinstance(payload, int) and not isinstance(payload, bool):
         last_ans = payload
@@ -104,8 +108,8 @@ def get_question(payload: Any = Body(...)):
         s = payload.strip()
         user_text = s if s else ''
         # Attempt to add any user text to medical record - proven to be helpful
-        if user_text != '':
-            gq.addMedHistory(user_text)
+        #if user_text != '':
+            #gq.addMedHistory(user_text)
 
     print(user_text, last_ans)
 

@@ -1,5 +1,5 @@
-from typing import List, Optional, Tuple, List
-from AWS_connect import get_rds_client, get_envs
+from typing import List, Optional, Tuple, Dict, Any
+from .table_creation.AWS_connect import get_rds_client, get_envs
 
 _rds = get_rds_client()
 _DB_CLUSTER_ARN, _DB_SECRET_ARN, _DB_NAME = get_envs()

@@ -10,3 +10,7 @@ configure_envs.sh
 .env
 SECRET.txt
 SECRET.sh
+__pycache__/
+.pyc
+.pyo
+.pyd

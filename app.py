@@ -1,20 +1,24 @@
 ''' FastAPI endpoints here '''
 
-from fastapi import FastAPI, APIRouter, Query
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from backend import pydantic_models as models
 from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
+from backend.queries.dashboard_query import (
+    q_total_triages, q_cases_today, q_cases_this_week,
+    q_search_triages, q_mark_sent_to_epic
+)
 from backend.model_inference import inference
+
+from backend.model import dashboard_model as model
+
 from typing import Optional
-from backend.api.dashboard_api import router as dashboard_router
+# from backend.api.dashboard_api import router as dashboard_router
 #backend/queries/dashboard_query.py
 from backend.queries import dashboard_query as query
 
 # Initialize FastAPI app
 app = FastAPI()
-
-#incude routers
-app.include_router(dashboard_router)
 
 # Define a patient class
 # patient_info = models.patientInfo()
@@ -46,17 +50,7 @@ def get_question(r: str | int = None):
         results: dict = inference(last_ans=r)
     return { "results": results }
 
-from queries.dashboard_query import (
-    q_total_triages, q_cases_today, q_cases_this_week,
-    q_search_triages, q_mark_sent_to_epic
-)
-from models.dashboard_model import (
-    DashboardStats, TriageListResponse, TriageSummary
-)
-
-router = APIRouter(prefix="/api", tags=["dashboard"])
-
-@router.get("/dashboard/stats", response_model=DashboardStats)
+@app.get("/api/dashboard/stats", response_model=model.DashboardStats)
 def dashboard_stats():
     return {
         "total": q_total_triages(),
@@ -64,7 +58,7 @@ def dashboard_stats():
         "this_week": q_cases_this_week(),
     }
 
-@router.get("/triages", response_model=TriageListResponse)
+@app.get("/api/triages", response_model=model.TriageListResponse)
 def list_triages(
     q: Optional[str] = Query(None, description="Search by patient name, agent id, or case number"),
     page: int = Query(1, ge=1),
@@ -72,15 +66,13 @@ def list_triages(
 ):
     return q_search_triages(q, page, page_size)
 
-@router.post("/triages/{triage_id}/send-to-epic", response_model=TriageSummary)
+@app.post("/api/triages/{triage_id}/send-to-epic", response_model=model.TriageSummary)
 def send_to_epic(triage_id: int):
     updated = q_mark_sent_to_epic(triage_id)
-    # fetch transformed row via search (reuses shaping)
     one = q_search_triages(term=f"TRG-{str(triage_id).zfill(3)}", page=1, page_size=1)
     if one["items"]:
         return one["items"][0]
-    # fallback: minimal object if search didn’t find it (shouldn’t happen)
-    return TriageSummary(
+    return model.TriageSummary(
         id=str(updated["triage_id"]) if updated else str(triage_id),
         case_number=f"TRG-{str(triage_id).zfill(3)}",
         agent_id=0,

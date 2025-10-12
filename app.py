@@ -1,9 +1,12 @@
 ''' FastAPI endpoints here '''
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from backend import pydantic_models as models
 from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
 from backend.model_inference import inference
+
+from backend.api.dashboard_api import router as dashboard_router
 
 # Initialize FastAPI app
 app = FastAPI()

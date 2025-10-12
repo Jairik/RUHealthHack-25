@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Activity, Moon, Sun, Menu, X, LayoutDashboard, ClipboardCheck, Key } from "lucide-react";
+import { Home, Activity, Moon, Sun, Menu, X, LayoutDashboard, ClipboardCheck, Key, Star } from "lucide-react";
 
 export default function Layout({ children, currentPageName }) {
   const [darkMode, setDarkMode] = useState(true);
@@ -46,19 +46,19 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:bg-gradient-to-br dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-indigo-200 dark:border-indigo-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                <Moon className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                Lunara
-              </span>
-            </Link>
+        {/* Top Navigation */}
+        <nav className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-indigo-200 dark:border-indigo-800 shadow-lg">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                  <Moon className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                  Lunara
+                </span>
+              </Link>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">

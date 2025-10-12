@@ -78,7 +78,7 @@ export default function AgentTriage() {
       const res = await fetch('http://127.0.0.1:8000/api/get_user_info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(""), // <— bare JSON string, made on the spot
+        body: JSON.stringify(mockPatientData.healthHistory.join(" ")), // <— bare JSON string, made on the spot
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -93,9 +93,7 @@ export default function AgentTriage() {
       //setQuestionHistory(prev => [...prev, { question: 'currentQuestion', answer }]);
 
       // question may be double-quoted like "\"...\"" — clean safely
-      const nextQ = typeof r.question === 'string'
-          ? r.question.replace(/^"(.*)"$/, '$1')
-          : "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?";
+      const nextQ = "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?";
       setCurrentQuestion(nextQ || '(no question returned)');
 
       // subspecialties → { name, short, rank, confidence (0–100) }
@@ -153,6 +151,9 @@ export default function AgentTriage() {
         const [head, tail] = answer.split(/\s*-\s*/, 2); // remove the " - " and trim around it
         last_ans = MAP[norm(head)] ?? -1;
         freeText = (tail || '').trim() || null;
+      } else if (typeof answer === 'string') {
+        freeText = answer
+        last_ans = -1
       } else {
         last_ans = MAP[norm(answer)] ?? -1;
         freeText = null;
@@ -441,5 +442,5 @@ export default function AgentTriage() {
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }

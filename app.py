@@ -1,6 +1,6 @@
 ''' FastAPI endpoints here '''
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from backend import pydantic_models as models
 from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
@@ -9,20 +9,18 @@ from backend.queries.dashboard_query import (
     q_search_triages, q_mark_sent_to_epic
 )
 from backend.model_inference import inference
-from fastapi import Body
+
 from backend.model import dashboard_model as model
+from backend.model import triage_model as triage
+from backend.queries import general_queries as gq
 from typing import Any, Optional
 from fastapi import FastAPI, Body, HTTPException
-
 from typing import Optional
-# from backend.api.dashboard_api import router as dashboard_router
-#backend/queries/dashboard_query.py
 from backend.queries import dashboard_query as query
-
+from backend.queries import general_queries as gq
 from datetime import datetime
-from typing import Any, Dict, Optional
-
-from fastapi.middleware.cors import CORSMiddleware
+from typing import Any, Dict, Optional, List
+from backend.queries.generate_fhir import build_referral_json
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -48,18 +46,29 @@ def health():
 
 @app.post("/api/get_user_info")
 def get_user_info(user: Any = Body(...)):
+    # Minimal happy-path payload that your UI understands
+    return {
+        "results": {
+            "question": "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?",
+            "subspecialty_results": [],
+            "condition_results": [],
+            "doctor_results": {}
+        }
+    }
+
+@app.post("/api/set_user_info")
+def set_user_info(user: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
-    # First, check if the patient is found
-    if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
-        # TODO Logic here to add to the DB
-        patient_history: str = ""
-    # If found, get the patient history
+    # First, check if the patient is found, adding if they are not
+    if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
+        gq.addUserInfo(user.first_name, user.last_name, user.dob)
+        patient_history: str = ""  # Can assume empty string, good to go
+    # If patient exists, get their history from Aurora db
     else:
         patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
+    # Initial model call to set up patient 'context'
     inference(user_text=patient_history, first_call=True)
     return { "success": True }
-
-
 
 @app.post("/api/get_question")
 def get_question(payload: Any = Body(...)):
@@ -84,6 +93,9 @@ def get_question(payload: Any = Body(...)):
         if isinstance(ut, str):
             ut = ut.strip()
             user_text = ut if ut else ''
+            # Attempt to add any user text to medical record - proven to be helpful
+            if user_text != '':
+                gq.addMedHistory(user_text)
 
     elif isinstance(payload, int) and not isinstance(payload, bool):
         last_ans = payload
@@ -91,6 +103,9 @@ def get_question(payload: Any = Body(...)):
     elif isinstance(payload, str):
         s = payload.strip()
         user_text = s if s else ''
+        # Attempt to add any user text to medical record - proven to be helpful
+        if user_text != '':
+            gq.addMedHistory(user_text)
 
     print(user_text, last_ans)
 
@@ -201,3 +216,69 @@ def list_triages(
 
     # If something else came back, surface it for now to avoid opaque 500s.
     return {"items": [], "page": page, "page_size": page_size, "total": 0, "total_pages": 0}
+
+@app.post("/api/triage/start", response_model=triage.StartTriageResponse)
+def api_start_triage(req: triage.StartTriageRequest):
+    """
+    1) create or find client
+    2) create triage row with agent_id + client_id
+    """
+    client_id = gq.q_get_or_create_client(
+        req.client_first_name.strip(),
+        req.client_last_name.strip(),
+        req.client_dob.strip(),
+    )
+    triage_id = gq.q_start_triage(req.agent_id, client_id)
+    return {"triage_id": triage_id, "client_id": client_id}
+
+@app.post("/api/triage/answer", response_model=triage.AnswerResponse)
+def api_answer(req: triage.AnswerRequest):
+    """
+    1) write Q/A to triage_question
+    2) run model inference to get updated confidences and top doctors
+    3) persist those updates on triage row
+    4) return the next question + current state to the frontend
+    """
+    # 1) persist Q/A
+    gq.q_insert_triage_question(req.triage_id, req.question, req.answer)
+
+    # 2) inference - your file already exposes `inference()` used elsewhere
+    #    It returns a dict with "subspecialty_results" and "doctor_results" + maybe "next_question"
+    result = inference(user_text=req.answer)
+
+    # 3) persist updated confidences + doctor picks
+    subs = result.get("subspecialty_results") or []
+    docs = result.get("doctor_results") or []
+    gq.q_update_triage_from_inference(req.triage_id, subs, docs)
+
+    # 4) shape response
+    return {
+        "triage_id": req.triage_id,
+        "next_question": result.get("next_question"),
+        "subspecialty_results": [
+            {"subspecialty_name": s.get("subspecialty_name", ""), "percent_match": int(float(s.get("percent_match", 0)))}
+            for s in subs
+        ],
+        "doctor_results": [
+            {"rank": d.get("rank", ""), "name": d.get("name", "")}
+            for d in docs
+        ],
+    }
+
+@app.post("/api/triage/end")
+def api_end_triage(req: triage.EndTriageRequest):
+    """
+    Finalize triage: store optional agent notes.
+    """
+    gq.q_end_triage(req.triage_id, req.agent_notes)
+    return {"ok": True}
+
+# Helper to directly download the fhir JSON, POC
+@app.get("/api/{triage_id}.json")
+def download_referral(triage_id: int):
+    payload = build_referral_json(triage_id)
+    if not payload:
+        raise HTTPException(status_code=404, detail="Triage not found")
+    # Force download
+    headers = {"Content-Disposition": f'attachment; filename="referral-{triage_id}.json"'}
+    return JSONResponse(content=payload, headers=headers)

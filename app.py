@@ -11,6 +11,9 @@ from backend.api.dashboard_api import router as dashboard_router
 # Initialize FastAPI app
 app = FastAPI()
 
+#incude routers
+app.include_router(dashboard_router)
+
 # Define a patient class
 # patient_info = models.patientInfo()
 

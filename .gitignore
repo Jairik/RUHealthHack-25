@@ -8,3 +8,7 @@ export_keys.sh
 /infra/infra-db-only/.terraform
 configure_envs.sh
 .env
+__pycache__/
+.pyc
+.pyo
+.pyd

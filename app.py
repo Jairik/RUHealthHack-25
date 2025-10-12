@@ -20,6 +20,7 @@ from backend.queries import dashboard_query as query
 from backend.queries import general_queries as gq
 from datetime import datetime
 from typing import Any, Dict, Optional, List
+from backend.queries.generate_fhir import build_referral_json
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -271,3 +272,13 @@ def api_end_triage(req: triage.EndTriageRequest):
     """
     gq.q_end_triage(req.triage_id, req.agent_notes)
     return {"ok": True}
+
+# Helper to directly download the fhir JSON, POC
+@app.get("/api/{triage_id}.json")
+def download_referral(triage_id: int):
+    payload = build_referral_json(triage_id)
+    if not payload:
+        raise HTTPException(status_code=404, detail="Triage not found")
+    # Force download
+    headers = {"Content-Disposition": f'attachment; filename="referral-{triage_id}.json"'}
+    return JSONResponse(content=payload, headers=headers)

@@ -9,7 +9,6 @@ from typing import Optional, Tuple, Dict, Any
 # Get RDS Data API client
 rds_client = get_rds_client()
 DB_CLUSTER_ARN, DB_SECRET_ARN, DB_NAME = get_envs()
-print("RDS client:", rds_client)  # Validation
 
 def run_query(sql, params=None):
     """Execute a SQL statement via Data API."""
@@ -28,7 +27,7 @@ def fetchAllClients():
     response = run_query(sql)
     return response.get('records', [])
 
-def addMedHistory(first_name: str, last_name: str, dob: Date, first_response: str):
+def addMedHistory(first_name: str, last_name: str, dob: Date, new_text: str):
     """
     Append `new_text` to client_history.history for the client identified by (fn, ln, dob).
     `dob_iso` must be 'YYYY-MM-DD', however will try best to convert it.
@@ -59,7 +58,7 @@ def addMedHistory(first_name: str, last_name: str, dob: Date, first_response: st
         {"name": "new_text",  "value": {"stringValue": new_text}},
     ]
 
-    resp = rds.execute_statement(
+    resp = rds_client.execute_statement(
         resourceArn=DB_CLUSTER_ARN,
         secretArn=DB_SECRET_ARN,
         database=DB_NAME,

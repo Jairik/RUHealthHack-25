@@ -2,7 +2,22 @@
 from __future__ import annotations
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
-from .general_queries import run_query
+# from .general_queries import run_query
+from .table_creation.AWS_connect import get_rds_client, get_envs
+
+rds_client = get_rds_client()
+DB_CLUSTER_ARN, DB_SECRET_ARN, DB_NAME = get_envs()
+
+
+# blah blah
+def run_query(sql: str, params: list) -> Dict[str, Any]:
+    return rds_client.execute_statement(
+        resourceArn=DB_CLUSTER_ARN,
+        secretArn=DB_SECRET_ARN,
+        database=DB_NAME,
+        sql=sql,
+        parameters=params or [],
+    )
 
 # Decoding helpers for RDS Data APIs
 def _cell(field: Dict[str, Any]) -> Any:

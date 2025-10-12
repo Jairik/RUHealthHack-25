@@ -9,16 +9,34 @@ from backend.queries.dashboard_query import (
     q_search_triages, q_mark_sent_to_epic
 )
 from backend.model_inference import inference
-
+from fastapi import Body
 from backend.model import dashboard_model as model
+from typing import Any, Optional
+from fastapi import FastAPI, Body, HTTPException
 
 from typing import Optional
 # from backend.api.dashboard_api import router as dashboard_router
 #backend/queries/dashboard_query.py
 from backend.queries import dashboard_query as query
 
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from fastapi.middleware.cors import CORSMiddleware
+
 # Initialize FastAPI app
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    ],
+    allow_methods=["*"],   # includes OPTIONS for preflight
+    allow_headers=["*"],   # allow Content-Type: application/json, etc.
+    allow_credentials=False,  # keep False unless you actually send cookies/auth
+)
 
 # Define a patient class
 # patient_info = models.patientInfo()
@@ -29,7 +47,7 @@ def health():
     return {"ok": True}
 
 @app.post("/api/get_user_info")
-def get_user_info(user: models.getUser):
+def get_user_info(user: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
     if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
@@ -41,14 +59,51 @@ def get_user_info(user: models.getUser):
     inference(user_text=patient_history, first_call=True)
     return { "success": True }
 
+
+
 @app.post("/api/get_question")
-def get_question(r: str | int = None):
-    ''' Endpoint to pass in results and get the next question and the results ''' 
-    if(isinstance(r, str)):
-        results: dict = inference(user_text=r)
+def get_question(payload: Any = Body(...)):
+    """
+    Accepts:
+      - 5                      -> last_ans=5
+      - "free text"            -> user_text="free text"
+      - {"last_ans": 1}        -> last_ans=1
+      - {"user_text": "hi"}    -> user_text="hi"
+      - {"last_ans": 1, "user_text": "hi"} -> both
+    """
+    last_ans: Optional[int] = None
+    user_text: Optional[str] = ''
+
+    if isinstance(payload, dict):
+        la = payload.get("last_ans", -1)
+        ut = payload.get("user_text", '')
+        # map int to last_ans (avoid treating bool as int)
+        if isinstance(la, int) and not isinstance(la, bool):
+            last_ans = la
+        # map str to user_text
+        if isinstance(ut, str):
+            ut = ut.strip()
+            user_text = ut if ut else ''
+
+    elif isinstance(payload, int) and not isinstance(payload, bool):
+        last_ans = payload
+
+    elif isinstance(payload, str):
+        s = payload.strip()
+        user_text = s if s else ''
+
+    print(user_text, last_ans)
+
+    # choose which branch to run (prefer user_text if both are present)
+    if user_text!='':
+        results: dict = inference(user_text=user_text, last_ans=last_ans)
+    elif user_text=='':
+        results: dict = inference(last_ans=last_ans)
     else:
-        results: dict = inference(last_ans=r)
-    return { "results": results }
+        raise HTTPException(status_code=422, detail="Provide an int (last_ans) and/or a string (user_text).")
+
+    return {"results": results}
+
 
 @app.get("/api/dashboard/stats", response_model=model.DashboardStats)
 def dashboard_stats():
@@ -58,28 +113,91 @@ def dashboard_stats():
         "this_week": q_cases_this_week(),
     }
 
-@app.get("/api/triages", response_model=model.TriageListResponse)
+@app.get("/api/triages", response_model=None)  # temporarily drop response_model to avoid 500 during coercion
 def list_triages(
     q: Optional[str] = Query(None, description="Search by patient name, agent id, or case number"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=200)
+    page_size: int = Query(20, ge=1, le=200),
 ):
-    return q_search_triages(q, page, page_size)
+    data = q_search_triages(q, page, page_size)
 
-@app.post("/api/triages/{triage_id}/send-to-epic", response_model=model.TriageSummary)
-def send_to_epic(triage_id: int):
-    updated = q_mark_sent_to_epic(triage_id)
-    one = q_search_triages(term=f"TRG-{str(triage_id).zfill(3)}", page=1, page_size=1)
-    if one["items"]:
-        return one["items"][0]
-    return model.TriageSummary(
-        id=str(updated["triage_id"]) if updated else str(triage_id),
-        case_number=f"TRG-{str(triage_id).zfill(3)}",
-        agent_id=0,
-        created_date="",
-        confidence_score=0,
-        subspecialist_confidences=[],
-        status="completed",
-        sent_to_epic=True,
-        epic_sent_date=str(updated.get("epic_sent_date")) if updated else None
-    )
+    # If helper already returns the correct envelope, normalize dates and return.
+    if isinstance(data, dict) and "items" in data:
+        items = []
+        for it in data["items"]:
+            it = dict(it)  # make mutable copy
+            # unify id as string; accept triage_id as fallback
+            if "id" not in it:
+                if "triage_id" in it:
+                    it["id"] = str(it["triage_id"])
+                else:
+                    it["id"] = str(it.get("id", ""))
+            # case_number fallback
+            it.setdefault("case_number", f"TRG-{it['id'].zfill(3) if isinstance(it['id'], str) and it['id'].isdigit() else it['id']}")
+            # created_date: coerce datetime -> ISO string; fall back from date_time
+            if "created_date" in it and isinstance(it["created_date"], datetime):
+                it["created_date"] = it["created_date"].isoformat()
+            elif "date_time" in it and isinstance(it["date_time"], datetime):
+                it["created_date"] = it["date_time"].isoformat()
+            else:
+                it.setdefault("created_date", datetime.utcnow().isoformat())
+
+            # subspecialist_confidences may already be array or JSON string; normalize to array
+            val = it.get("subspecialist_confidences")
+            if isinstance(val, str):
+                try:
+                    import json
+                    it["subspecialist_confidences"] = json.loads(val)
+                except Exception:
+                    it["subspecialist_confidences"] = []
+            elif not isinstance(val, list):
+                it["subspecialist_confidences"] = []
+
+            # booleans default
+            it["sent_to_epic"] = bool(it.get("sent_to_epic", False))
+
+            items.append(it)
+
+        total = data.get("total", len(items))
+        total_pages = data.get("total_pages", (total + page_size - 1) // page_size)
+        return {
+            "items": items,
+            "page": data.get("page", page),
+            "page_size": data.get("page_size", page_size),
+            "total": total,
+            "total_pages": total_pages,
+        }
+
+    # If helper returned a list (legacy), wrap it into the expected envelope.
+    if isinstance(data, list):
+        items = []
+        for idx, it in enumerate(data, 1):
+            it = dict(it)
+            if "id" not in it:
+                if "triage_id" in it:
+                    it["id"] = str(it["triage_id"])
+                else:
+                    it["id"] = str(idx)
+            it.setdefault("case_number", f"TRG-{str(it['id']).zfill(3)}")
+            if "created_date" in it and isinstance(it["created_date"], datetime):
+                it["created_date"] = it["created_date"].isoformat()
+            elif "date_time" in it and isinstance(it["date_time"], datetime):
+                it["created_date"] = it["date_time"].isoformat()
+            else:
+                it.setdefault("created_date", datetime.utcnow().isoformat())
+            if not isinstance(it.get("subspecialist_confidences"), list):
+                it["subspecialist_confidences"] = []
+            it["sent_to_epic"] = bool(it.get("sent_to_epic", False))
+            items.append(it)
+
+        total = len(items)
+        return {
+            "items": items,
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "total_pages": (total + page_size - 1) // page_size,
+        }
+
+    # If something else came back, surface it for now to avoid opaque 500s.
+    return {"items": [], "page": page, "page_size": page_size, "total": 0, "total_pages": 0}

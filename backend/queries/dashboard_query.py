@@ -4,26 +4,26 @@ from .table_creation.AWS_connect import get_rds_client, get_envs
 _rds = get_rds_client()
 _DB_CLUSTER_ARN, _DB_SECRET_ARN, _DB_NAME = get_envs()
 
-def _execute_sql(sql: str) -> List[dict]:
-	"""Helper function to execute a SQL statement via RDS Data API and return records."""
-	response = _rds.execute_statement(
-		resourceArn=_DB_CLUSTER_ARN,
-		secretArn=_DB_SECRET_ARN,
-		database=_DB_NAME,
-		sql=sql,
-	)
-	return response.get('records', [])
+def _execute_sql(sql: str) -> dict:
+    response = _rds.execute_statement(
+        resourceArn=_DB_CLUSTER_ARN,
+        secretArn=_DB_SECRET_ARN,
+        database=_DB_NAME,
+        sql=sql,
+        includeResultMetadata=True,   # ← add this
+    )
+    return response
 
-def _execute_sql_params(sql: str, parameters: List[dict]) -> List[dict]:
-	"""Helper function to execute a SQL statement with parameters via RDS Data API and return records."""
-	response = _rds.execute_statement(
-		resourceArn=_DB_CLUSTER_ARN,
-		secretArn=_DB_SECRET_ARN,
-		database=_DB_NAME,
-		sql=sql,
-		parameters=parameters
-	)
-	return response.get('records', [])
+def _execute_sql_params(sql: str, parameters: list) -> dict:
+    response = _rds.execute_statement(
+        resourceArn=_DB_CLUSTER_ARN,
+        secretArn=_DB_SECRET_ARN,
+        database=_DB_NAME,
+        sql=sql,
+        parameters=parameters,
+        includeResultMetadata=True,   # ← add this too
+    )
+    return response
 
 def _rows_to_dicts(resp) -> List[Dict[str, Any]]:
 	"""Convert RDS Data API response rows to list of dictionaries."""

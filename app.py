@@ -9,7 +9,7 @@ from backend.queries.dashboard_query import (
     q_search_triages, q_mark_sent_to_epic
 )
 from backend.model_inference import inference
-
+from fastapi import Body
 from backend.model import dashboard_model as model
 from typing import Any, Optional
 from fastapi import FastAPI, Body, HTTPException

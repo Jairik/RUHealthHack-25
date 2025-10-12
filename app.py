@@ -9,8 +9,10 @@ from backend.queries.dashboard_query import (
     q_search_triages, q_mark_sent_to_epic
 )
 from backend.model_inference import inference
-
+from fastapi import Body
 from backend.model import dashboard_model as model
+from typing import Any, Optional
+from fastapi import FastAPI, Body, HTTPException
 
 from typing import Optional
 # from backend.api.dashboard_api import router as dashboard_router
@@ -20,8 +22,21 @@ from backend.queries import dashboard_query as query
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Initialize FastAPI app
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    ],
+    allow_methods=["*"],   # includes OPTIONS for preflight
+    allow_headers=["*"],   # allow Content-Type: application/json, etc.
+    allow_credentials=False,  # keep False unless you actually send cookies/auth
+)
 
 # Define a patient class
 # patient_info = models.patientInfo()
@@ -32,7 +47,7 @@ def health():
     return {"ok": True}
 
 @app.post("/api/get_user_info")
-def get_user_info(user: models.getUser):
+def get_user_info(user: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
     if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
@@ -44,14 +59,51 @@ def get_user_info(user: models.getUser):
     inference(user_text=patient_history, first_call=True)
     return { "success": True }
 
+
+
 @app.post("/api/get_question")
-def get_question(r: str | int = None):
-    ''' Endpoint to pass in results and get the next question and the results ''' 
-    if(isinstance(r, str)):
-        results: dict = inference(user_text=r)
+def get_question(payload: Any = Body(...)):
+    """
+    Accepts:
+      - 5                      -> last_ans=5
+      - "free text"            -> user_text="free text"
+      - {"last_ans": 1}        -> last_ans=1
+      - {"user_text": "hi"}    -> user_text="hi"
+      - {"last_ans": 1, "user_text": "hi"} -> both
+    """
+    last_ans: Optional[int] = None
+    user_text: Optional[str] = ''
+
+    if isinstance(payload, dict):
+        la = payload.get("last_ans", -1)
+        ut = payload.get("user_text", '')
+        # map int to last_ans (avoid treating bool as int)
+        if isinstance(la, int) and not isinstance(la, bool):
+            last_ans = la
+        # map str to user_text
+        if isinstance(ut, str):
+            ut = ut.strip()
+            user_text = ut if ut else ''
+
+    elif isinstance(payload, int) and not isinstance(payload, bool):
+        last_ans = payload
+
+    elif isinstance(payload, str):
+        s = payload.strip()
+        user_text = s if s else ''
+
+    print(user_text, last_ans)
+
+    # choose which branch to run (prefer user_text if both are present)
+    if user_text!='':
+        results: dict = inference(user_text=user_text, last_ans=last_ans)
+    elif user_text=='':
+        results: dict = inference(last_ans=last_ans)
     else:
-        results: dict = inference(last_ans=r)
-    return { "results": results }
+        raise HTTPException(status_code=422, detail="Provide an int (last_ans) and/or a string (user_text).")
+
+    return {"results": results}
+
 
 @app.get("/api/dashboard/stats", response_model=model.DashboardStats)
 def dashboard_stats():

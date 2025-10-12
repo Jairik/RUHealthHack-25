@@ -2,6 +2,7 @@ import React, { createContext, useState } from 'react';
 
 export const TriageContext = createContext();
 
+
 // Initial state for the triage context
 const initialTriageData = {
     /* Dictionary of patient info*/

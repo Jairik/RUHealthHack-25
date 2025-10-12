@@ -52,7 +52,7 @@ export default function AgentTriage() {
     setLoading(true);
     
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     try {
       setAgentId(patientData.agentId);
@@ -73,39 +73,60 @@ export default function AgentTriage() {
       };
       
       const mockInitialQuestion = mockQuestions[0];
-      
-      // MOCK DATA - Initial subspecialist confidences
-      const mockSubspecialists = [
-        { name: "Maternal-Fetal Medicine", confidence: 15 },
-        { name: "Urogynecology", confidence: 20 },
-        { name: "Minimally Invasive Surgery", confidence: 25 },
-        { name: "Reproductive Endocrinology", confidence: 30 },
-        { name: "Gynecologic Oncology", confidence: 10 },
-        { name: "General OB/GYN", confidence: 40 }
-      ];
+      // ==== START REPLACE (from your PLACEHOLDER down through the mock updates) ====
 
-      // MOCK DATA - Initial condition probabilities
-      const mockConditions = [
-        { name: "Polycystic Ovary Syndrome (PCOS)", probability: 35 },
-        { name: "Endometriosis", probability: 28 },
-        { name: "Uterine Fibroids", probability: 22 },
-        { name: "Pelvic Inflammatory Disease", probability: 18 },
-        { name: "Ovarian Cysts", probability: 25 },
-        { name: "Menstrual Irregularities", probability: 40 }
-      ];
-      
-      // MOCK DATA - Top 3 Doctor matches
-      const mockDoctors = [
-        { name: "Sarah Johnson", specialty: "General OB/GYN", availability: "Available", credentials: "MD, FACOG" },
-        { name: "Emily Chen", specialty: "Reproductive Endocrinology", availability: "Available", credentials: "MD, FACOG" },
-        { name: "Maria Rodriguez", specialty: "Minimally Invasive Surgery", availability: "Next Week", credentials: "DO, FACOG" }
-      ];
-      
-      setPatient(mockPatientData);
-      setCurrentQuestion(mockInitialQuestion);
-      setSubspecialists(mockSubspecialists);
-      setConditions(mockConditions);
-      setDoctorMatches(mockDoctors);
+      const res = await fetch('http://127.0.0.1:8000/api/get_user_info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(""), // <— bare JSON string, made on the spot
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      const r = data?.results ?? {};
+
+      console.log(data)
+      const answer = 'answer'
+
+      setPatient(mockPatientData)
+      // add the just-answered pair to history
+      //setQuestionHistory(prev => [...prev, { question: 'currentQuestion', answer }]);
+
+      // question may be double-quoted like "\"...\"" — clean safely
+      const nextQ = typeof r.question === 'string'
+          ? r.question.replace(/^"(.*)"$/, '$1')
+          : "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?";
+      setCurrentQuestion(nextQ || '(no question returned)');
+
+      // subspecialties → { name, short, rank, confidence (0–100) }
+      setSubspecialists(
+        (r.subspecialty_results ?? [])
+          .map(s => ({
+            name: s.subspecialty_name,
+            short: s.subspecialty_short,
+            rank: s.rank,
+            confidence: Math.round((s.percent_match ?? 0) * 100),
+          }))
+          .sort((a, b) => b.confidence - a.confidence)
+      );
+
+      // conditions → { name, probability (0–100) }
+      setConditions(
+        (r.condition_results ?? [])
+          .map(c => ({
+            name: c.condition,
+            probability: Math.round((c.condition_results ?? 0) * 100),
+          }))
+          .sort((a, b) => b.probability - a.probability)
+      );
+
+      // doctors (optional)
+      setDoctorMatches(
+        r.doctor_results
+          ? Object.entries(r.doctor_results).map(([label, name]) => ({ label, name }))
+          : []
+      );
+
       setStep(2);
     } catch (error) {
       console.error("Error retrieving patient data:", error);
@@ -116,44 +137,81 @@ export default function AgentTriage() {
   };
 
   const handleAnswerSubmit = async (answer) => {
+    
     setLoading(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     try {
-      // PLACEHOLDER: API call would go here
-      // Example: const response = await fetch('/api/triage/next-question', { 
-      //   method: 'POST', 
-      //   body: JSON.stringify({ question: currentQuestion, answer, history: questionHistory }) 
-      // });
-      
-      // Add current Q&A to history
-      setQuestionHistory([
-        ...questionHistory,
-        { question: currentQuestion, answer }
-      ]);
-      
-      // MOCK DATA - Get next question
-      const nextQuestionIndex = (questionHistory.length + 1) % mockQuestions.length;
-      const mockNextQuestion = mockQuestions[nextQuestionIndex];
-      
-      // MOCK DATA - Update subspecialist confidences (simulate AI analysis)
-      const updatedSubspecialists = subspecialists.map(sub => ({
-        ...sub,
-        confidence: Math.min(100, Math.max(5, sub.confidence + (Math.random() * 20 - 10)))
-      })).sort((a, b) => b.confidence - a.confidence);
+      // ==== START REPLACE (remove everything from the PLACEHOLDER comment down to the mock updates) ====
 
-      // MOCK DATA - Update condition probabilities (simulate AI analysis)
-      const updatedConditions = conditions.map(cond => ({
-        ...cond,
-        probability: Math.min(95, Math.max(5, cond.probability + (Math.random() * 25 - 12.5)))
-      })).sort((a, b) => b.probability - a.probability);
-      
-      setCurrentQuestion(mockNextQuestion);
-      setSubspecialists(updatedSubspecialists);
-      setConditions(updatedConditions);
-      
+      // --- tiny parse+payload ---
+      const MAP = { yes: 1, no: 0, skip: -1 };
+      const norm = s => (s || '').trim().toLowerCase();
+
+      let last_ans, freeText;
+
+      if (typeof answer === 'string' && answer.includes('-')) {
+        const [head, tail] = answer.split(/\s*-\s*/, 2); // remove the " - " and trim around it
+        last_ans = MAP[norm(head)] ?? -1;
+        freeText = (tail || '').trim() || null;
+      } else {
+        last_ans = MAP[norm(answer)] ?? -1;
+        freeText = null;
+      }
+
+      const body = JSON.stringify({user_text: freeText ?? '' , last_ans});
+
+      // use in your fetch:
+      const res = await fetch('http://127.0.0.1:8000/api/get_question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const r = data?.results ?? {};
+      console.log(data)
+
+      // 1) add the just-answered pair to history (using the current question shown)
+      setQuestionHistory(prev => [...prev, { question: currentQuestion, answer }]);
+
+      // 2) next question (backend returns "\"...\"" — remove wrapping quotes)
+      const nextQ = typeof r.question === 'string'
+        ? r.question.replace(/^"(.*)"$/, '$1')
+        : '';
+      setCurrentQuestion(nextQ || '(no question returned)');
+
+      // 3) subspecialties → { name, confidence } (0–100), keep extra fields if you need them
+      setSubspecialists(
+        (r.subspecialty_results ?? [])
+          .map(s => ({
+            name: s.subspecialty_name,
+            short: s.subspecialty_short,
+            rank: s.rank,
+            confidence: Math.round((s.percent_match ?? 0) * 100),
+          }))
+          .sort((a, b) => b.confidence - a.confidence)
+      );
+
+      // 4) conditions → { name, probability } (0–100)
+      setConditions(
+        (r.condition_results ?? [])
+          .map(c => ({
+            name: c.condition,
+            probability: Math.round((c.condition_results ?? 0) * 100),
+          }))
+          .sort((a, b) => b.probability - a.probability)
+      );
+
+      // 5) doctors → simple list; adapt if your UI expects more fields
+      setDoctorMatches(
+        r.doctor_results
+          ? Object.entries(r.doctor_results).map(([label, name]) => ({ label, name }))
+          : []
+      );
+
+      // ==== END REPLACE ====
+
     } catch (error) {
       console.error("Error processing answer:", error);
       alert("Error processing answer. Please try again.");

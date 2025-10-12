@@ -10,6 +10,8 @@ import AgentTriage from "./AgentTriage";
 
 import AdminRules from "./AdminRules";
 
+import ModelValidation from "./ModelValidation";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -60,6 +62,8 @@ function PagesContent() {
                 <Route path="/AgentTriage" element={<AgentTriage />} />
                 
                 <Route path="/AdminRules" element={<AdminRules />} />
+
+                <Route path="/ModelValidation" element={<ModelValidation />} />
                 
             </Routes>
         </Layout>

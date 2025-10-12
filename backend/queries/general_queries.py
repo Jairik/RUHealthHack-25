@@ -153,23 +153,24 @@ def _coerce_percent(x: Any) -> int:
 def _subs_to_conf_columns(subs: List[Dict[str, Any]]) -> Dict[str, int]:
     cols = dict(re_conf=0, mfm_conf=0, uro_conf=0, gob_conf=0, mis_conf=0, go_conf=0)
     for s in subs or []:
-        key = (
-            (s.get("subspecialty_short") or s.get("subspecialty_name") or "")
-            .lower()
-        )
+        short = (s.get("subspecialty_short") or "").lower()
+        name = (s.get("subspecialty_name") or "").lower()
         p = _coerce_percent(s.get("percent_match", 0))
-        if "rei" in key or "reproductive" in key:
+        
+        # Match based on short code first, then name
+        if "rei" in short or "reproductive" in name or "infertility" in name:
             cols["re_conf"] = p
-        elif "mfm" in key or "maternal" in key:
+        elif "mfm" in short or "maternal" in name or "fetal" in name:
             cols["mfm_conf"] = p
-        elif "uro" in key:
+        elif "urogyn" in short or "uro" in short or "urogynecolog" in name or "reconstructive" in name:
             cols["uro_conf"] = p
-        elif "gob" in key or key == "ob" or "obstetric" in key:
+        elif "ob/gyn" in short or "ob/gyn" in name or "general ob" in name:
             cols["gob_conf"] = p
-        elif "mis" in key:
+        elif "mis" in short or "minimally invasive" in name:
             cols["mis_conf"] = p
-        elif key == "go" or "oncolog" in key:
+        elif "gynonc" in short or "go" == short or "oncolog" in name:
             cols["go_conf"] = p
+    
     return cols
 
 def q_update_triage_from_inference(

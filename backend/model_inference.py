@@ -185,16 +185,25 @@ def inference(
         # 2) Build mask: NOT in best group, and NOT in dont_ask
         N = probs.shape[0]
         mask = (inv != best_group_code)
-        dont_ask = np.asarray(dont_ask, dtype=np.intp)
-        dont_ask = dont_ask[(dont_ask >= 0) & (dont_ask < N)]  # safety against OOB
-        mask[dont_ask] = False
+        dont_ask_arr = np.asarray(dont_ask, dtype=np.intp)
+        dont_ask_arr = dont_ask_arr[(dont_ask_arr >= 0) & (dont_ask_arr < N)]  # safety against OOB
+        mask[dont_ask_arr] = False
+        
+        # Also exclude last_qid to prevent immediate repeats
+        if last_qid >= 0 and last_qid < N:
+            mask[last_qid] = False
+        
         # Option A: single pass (fill excluded with -inf)
         next_qid = int(np.argmax(np.where(mask, probs, -np.inf)))
-        #then we will call
-        dump(next_qid, model_dir / 'last.qid')
-
-        question = pd.read_csv(data_dir / 'symptoms_full.csv').values[next_qid, 8]
-    
+        
+        # Check if we've asked this question before (safety check)
+        if next_qid in dont_ask:
+            # If all questions exhausted, just return a fallback
+            question = "Thank you for answering all our questions."
+        else:
+            #then we will call
+            dump(next_qid, model_dir / 'last.qid')
+            question = pd.read_csv(data_dir / 'symptoms_full.csv').values[next_qid, 8]
     else:
         question = 'Q_INIT'
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -11,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTriageContext } from "@/contexts/TriageContext";
 
+// Actual component
 export default function AgentTriage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -27,6 +28,7 @@ export default function AgentTriage() {
   const [agentNotes, setAgentNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [caseNumber, setCaseNumber] = useState("");
+  const { triageData, setTriageData } = useTriageContext();
 
   // MOCK DATA - Questions pool
   const mockQuestions = [

@@ -94,22 +94,22 @@ def inference(
     first_call=False,
     last_ans=-1
 ):
-    model_dir = Path("./model")
+    model_dir = Path(__file__).resolve().parent / "model"
 
     if(first_call):
-        dump("",Path('./model/work.str'))
-        dump([],Path('./model/null.idx'))
-        dump([],Path('./model/sclr.idx'))
-        dump([],Path('./model/dont.ask'))
-        dump(-1,Path('./model/last.qid'))
+        dump("",model_dir / 'work.str')
+        dump([],model_dir / 'null.idx')
+        dump([],model_dir / 'sclr.idx')
+        dump([],model_dir / 'dont.ask')
+        dump(-1,model_dir / 'last.qid')
 
-    work_str = load(Path('./model/work.str'))
+    work_str = load(model_dir / 'work.str')
     work_str += user_text
     
-    null_idx = load(Path('./model/null.idx'))
-    sclr_idx = load(Path('./model/sclr.idx'))
-    dont_ask = load(Path('./model/dont.ask'))
-    last_qid = load(Path('./model/last.qid'))
+    null_idx = load(model_dir / 'null.idx')
+    sclr_idx = load(model_dir / 'sclr.idx')
+    dont_ask = load(model_dir / 'dont.ask')
+    last_qid = load(model_dir / 'last.qid')
 
     out = load_and_predict_softmax(model_dir, work_str, k=6)
     
@@ -120,7 +120,7 @@ def inference(
 
     #print(f"loaded last_qid: {last_qid}")
 
-    sspec_full = pd.read_csv(Path('./data/symptoms_full.csv')).values[:, 1:3]
+    sspec_full = pd.read_csv(Path('../backend/data/symptoms_full.csv')).values[:, 1:3]
     sspec_map = sspec_full[:, 0].astype(np.int64)
     cond_map = sspec_full[:, 1]
 
@@ -141,7 +141,7 @@ def inference(
 
     if(len(sclr_idx)>0):
         #here for inference
-        sclr_vals = pd.read_csv(Path('./data/symptoms_full.csv')).values[sclr_idx, 9].astype(np.float32)
+        sclr_vals = pd.read_csv(Path('../backend/data/symptoms_full.csv')).values[sclr_idx, 9].astype(np.float32)
         out['probs'][sclr_idx] *= sclr_vals
 
     if(len(null_idx)>0):
@@ -154,10 +154,10 @@ def inference(
 
 
     #need to dump updated values
-    dump(null_idx,Path('./model/null.idx'))
-    dump(sclr_idx,Path('./model/sclr.idx'))
-    dump(dont_ask,Path('./model/dont.ask'))
-    dump(work_str,Path('./model/work.str'))
+    dump(null_idx,model_dir / 'null.idx')
+    dump(sclr_idx,model_dir / 'sclr.idx')
+    dump(dont_ask,model_dir / 'dont.ask')
+    dump(work_str,model_dir / 'work.str')
 
     #need to solve for highest proba outside strongest sspec aggregation        
     #mean_by_sspec = np.bincount(sspec_map, weights=out["probs"])
@@ -180,9 +180,9 @@ def inference(
         # Option A: single pass (fill excluded with -inf)
         next_qid = int(np.argmax(np.where(mask, probs, -np.inf)))
         #then we will call
-        dump(next_qid, Path('./model/last.qid'))
+        dump(next_qid, model_dir / 'last.qid')
 
-        question = pd.read_csv(Path('./data/symptoms_full.csv')).values[next_qid, 8]
+        question = pd.read_csv(Path('../backend/data/symptoms_full.csv')).values[next_qid, 8]
     
     else:
         question = 'Q_INIT'
@@ -192,9 +192,9 @@ def inference(
 
     topk_cond = [{"condition":cond_map[i[0]],"condition_results":round(i[1], 4)} for i in out['topk']]
 
-    doc_map = pd.read_csv(Path('./data/cond_doc_map.csv')).values
+    doc_map = pd.read_csv(Path('../backend/data/cond_doc_map.csv')).values
 
-    doc_names = pd.read_csv(Path('./data/doc_sspec_map.csv')).values
+    doc_names = pd.read_csv(Path('../backend/data/doc_sspec_map.csv')).values
 
     doc_mapper = out['probs'][doc_map[:, 0]]
 
@@ -222,7 +222,7 @@ def inference(
 
     p_trans_sums = power_transform(sspec_sum)
 
-    sspecs = pd.read_csv(Path('./data/sspec_key_map.csv')).values
+    sspecs = pd.read_csv(Path('../backend/data/sspec_key_map.csv')).values
 
     order_idx = np.argsort(-p_trans_sums)
 
@@ -264,7 +264,7 @@ def _find_backend_root(start: Path) -> Path | None:
     If we're inside the 'backend' tree, return that 'backend' dir.
     Else, walk upward until we find a directory that *contains* 'backend/model'.
     """
-    # Case A: we're already somewhere under .../backend/...
+    # Case A: we're already somewhere under ..../backend/backend/...
     for p in [start, *start.parents]:
         if p.name == "backend":
             model_dir = p / "model"

@@ -1,7 +1,8 @@
 import os
-
+from dateutil import parser
 import boto3
 from table_creation.AWS_connect import get_rds_client, get_envs
+from utils.convert_date_overkill import parse_date_all 
 
 # Get RDS Data API client
 rds_client = get_rds_client()
@@ -19,37 +20,56 @@ def run_query(sql, params=None):
         parameters=params or []
     )
     
+# Basic example function to fetch all clients from triage
 def fetchAllClients():
     sql = "SELECT * FROM triage;"
     response = run_query(sql)
     return response.get('records', [])
 
-r = fetchAllClients()
-print("All records:", r)
-
-sql = "INSERT INTO triage (agent_id, client_id, date_time, re_conf, mfm_conf, uro_conf, gob_conf, mis_conf, go_conf, doc_id1, doc_id2, doc_id3, agent_notes, sent_to_epic, epic_sent_date) VALUES (101, 1881, '2025-10-12 00:28:50', 23, 54, 8, 1, 5, 9, 13, 18, 12, 'HIST: hx of PCOS in 2011; family hx of endometrial cancer | CURR: concern for nausea in pregnancy after exercise; denies foul discharge, but endorses pelvic pain weekly | Q/A steps: 3', FALSE, NULL)"
-run_query(sql)
-
 def addMedHistory(first_name: str, last_name: str, dob: DATE, first_response: str):
-    sql = """
-    UPDATE client_history
-    SET first_response = CONCAT(first_response, '\n', :new_response)
-    WHERE client_id = (
-        SELECT client_id FROM client
-        WHERE client_fn = :fn AND client_ln = :ln AND client_dob = :dob
-    );
     """
+    Append `new_text` to client_history.history for the client identified by (fn, ln, dob).
+    `dob_iso` must be 'YYYY-MM-DD', however will try best to convert it.
+    """
+    # Try best attempt to convert string to ISO format
+    dob_iso = parse_date_all(dob, prefer="US")["best"]
+    if not dob_iso:
+        return {"success": False, "error": "Could not parse date of birth."}
     
+    # Define the SQL query with parameter placeholders
+    sql = """
+    INSERT INTO client_history (client_id, history)
+    SELECT c.client_id, :new_text
+    FROM client c
+    WHERE c.client_fn = :fn
+      AND c.client_ln = :ln
+      AND c.client_dob = :dob::date
+    ON CONFLICT (client_id)
+    DO UPDATE SET history =
+        COALESCE(client_history.history || E'\\n', '') || EXCLUDED.history;
+    """
+    # Define parameters
     params = [
-        {"name": "fn", "value": {"stringValue": first_name}},
-        {"name": "ln", "value": {"stringValue": last_name}},
-        {"date": "dob", "value": {"DATE": dob}},
-        {"name": "new_response", "value": {"stringValue": first_response}},
+        {"name": "fn",        "value": {"stringValue": first_name}},
+        {"name": "ln",        "value": {"stringValue": last_name}},
+        # Data API: pass as string + cast to ::date in SQL (most reliable)
+        {"name": "dob",       "value": {"stringValue": dob_iso}},
+        {"name": "new_text",  "value": {"stringValue": new_text}},
     ]
-    
-    run_query(addMedHistory)
-    
-    return {"success": True}
+
+    resp = rds.execute_statement(
+        resourceArn=DB_CLUSTER_ARN,
+        secretArn=DB_SECRET_ARN,
+        database=DB_NAME,
+        sql=sql,
+        parameters=params,
+    )
+
+    # numberOfRecordsUpdated counts 1 for INSERT or UPDATE paths
+    updated = resp.get("numberOfRecordsUpdated", 0)
+
+    # If 0, the SELECT in the INSERT matched no client rows (name/dob not found)
+    return {"success": updated > 0, "rows_affected": updated}
 
 def validateClientExists(firstName: str, lastName: str, dob: Date):
     ''' Check if a patient exists in the DB for further logic checks '''
@@ -83,27 +103,42 @@ def addUserInfo(firstName: str, lastName: str, dob: Date, insPolId: int):
 
 # TODO TODO TODO - FIX ONCE DB IS UPDATED - TODO TODO TODO
 def getPatientHistory(firstName: str, lastName: str, dob: Date):
-    ''' Retrieve patient history from the DB '''
+    ''' Retrieve the medical history text for a patient identified by (fn, ln, dob). '''
+    # Normalize date to ISO format
+    try:
+        parsed = parse_date_all(dob_input, context="dob", prefer="US")
+        dob_iso = parsed.get("best")
+        if not dob_iso:
+            return f"Invalid or ambiguous DOB: {dob_input}"
+    except Exception as e:
+        return f"Failed to parse DOB: {e}"
+
+    # Query for the history text
     sql = """
-    SELECT * FROM client
-    WHERE client_fn = :firstName AND client_ln = :lastName AND client_dob = :dob;
+    SELECT ch.history
+    FROM client c
+    LEFT JOIN client_history ch USING (client_id)
+    WHERE c.client_fn = :fn
+      AND c.client_ln = :ln
+      AND c.client_dob = :dob::date;
     """
+
     params = [
-        {'name': 'firstName', 'value': {'stringValue': firstName}},
-        {'name': 'lastName', 'value': {'stringValue': lastName}},
-        {'name': 'dob', 'value': {'stringValue': dob.isoformat()}}
+        {"name": "fn",  "value": {"stringValue": firstName}},
+        {"name": "ln",  "value": {"stringValue": lastName}},
+        {"name": "dob", "value": {"stringValue": dob_iso}},
     ]
-    response = run_query(sql, params)
-    records = response.get('records', [])
-    
-    # Validate that records were found
+
+    resp = run_query(sql, params)
+    records = resp.get("records", [])
     if not records:
         return "No history found."
-    
-    # Format the records into a readable string
-    history = []
-    for record in records:
-        formatted_record = ". ".join(f"{key}: {value.get(list(value.keys())[0])}" for key, value in zip(['client_id', 'client_fn', 'client_ln', 'client_dob', 'ins_pol_id'], record))
-        history.append(formatted_record)
-    
-    return "\n".join(history)
+
+    # Extract the first record’s history field
+    field = records[0][0]
+    if "stringValue" in field:
+        return field["stringValue"]
+    elif "isNull" in field and field["isNull"]:
+        return "No history recorded."
+    else:
+        return str(field)

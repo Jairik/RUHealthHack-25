@@ -20,7 +20,7 @@ if not all([RESOURCE_ARN, SECRET_ARN, REGION]):
 
 client = boto3.client("rds-data", region_name=REGION)
 
-# 1️⃣ Get all tables in the public schema
+# Get all tables in the public schema
 def get_all_tables():
     sql = """
         SELECT table_name
@@ -37,7 +37,7 @@ def get_all_tables():
     tables = [row[0]['stringValue'] for row in resp['records']]
     return tables
 
-# 2️⃣ Drop each table
+# Drop each table
 def drop_tables(tables):
     for t in tables:
         try:

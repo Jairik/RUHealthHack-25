@@ -1,31 +1,27 @@
-''' FastAPI endpoints here '''
+# ---------- FastAPI endpoints here ----------
 
-from fastapi import FastAPI, Query, Body
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from backend import pydantic_models as models
-from backend.queries.table_creation.AWS_connect import get_rds_client, get_envs
-from backend.queries.dashboard_query import (
-    q_total_triages, q_cases_today, q_cases_this_week,
-    q_search_triages, q_mark_sent_to_epic
-)
-from backend.model_inference import inference
+from pydantic import BaseModel
 
+from backend import pydantic_models as models  # (unused right now but kept)
 from backend.model import dashboard_model as model
 from backend.model import triage_model as triage
+from backend.model_inference import inference
 from backend.queries import general_queries as gq
-from typing import Any, Optional
-from fastapi import FastAPI, Body, HTTPException
-from typing import Optional
-from backend.queries import dashboard_query as query
-from backend.queries import general_queries as gq
-from datetime import datetime
-from typing import Any, Dict, Optional, List
-from backend.queries.generate_fhir import build_referral_json
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
+from backend.queries.dashboard_query import (
+    q_total_triages,
+    q_cases_today,
+    q_cases_this_week,
+    q_search_triages,
+    q_mark_sent_to_epic,  # not used here but keep import for other pages
+)
 
+# ---------------- App & CORS ----------------
 
-# Initialize FastAPI app
 app = FastAPI()
 
 app.add_middleware(
@@ -34,95 +30,93 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:5173",
     ],
-    allow_methods=["*"],   # includes OPTIONS for preflight
-    allow_headers=["*"],   # allow Content-Type: application/json, etc.
-    allow_credentials=False,  # keep False unless you actually send cookies/auth
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
 )
 
-# Define a patient class
-# patient_info = models.patientInfo()
+# ---------------- Utilities ----------------
 
-# Basic example endpoint
+def _as_percent_int(v) -> int:
+    try:
+        f = float(v)
+    except Exception:
+        return 0
+    # model gives 0..1; store/display as 0..100 int
+    return int(round(100 * f)) if f <= 1.0 else int(round(f))
+
+def _normalize_doctor_results(docs_any) -> list[dict]:
+    """
+    Accepts dict {'Best Match': 'Smith', 'Second Match': 'Chen', ...}
+    or already-normalized list, and returns a list of {'rank': 'Top 1', 'name': 'Smith'}.
+    """
+    if isinstance(docs_any, list):
+        return docs_any
+    if isinstance(docs_any, dict):
+        order = [
+            ("Top 1", docs_any.get("Best Match")),
+            ("Top 2", docs_any.get("Second Match")),
+            ("Top 3", docs_any.get("Third Match")),
+        ]
+        return [{"rank": r, "name": n} for r, n in order if n]
+    return []
+
+
+# ---------------- Health ----------------
+
 @app.get("/api/health")
 def health():
     return {"ok": True}
 
+# ---------------- Page 1 bootstrap ----------------
+
 @app.post("/api/get_user_info")
 def get_user_info(user: Any = Body(...)):
-    # Minimal happy-path payload that your UI understands
+    # Minimal envelope your UI expects; real lookup can be added later.
     return {
         "results": {
             "question": "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?",
             "subspecialty_results": [],
             "condition_results": [],
-            "doctor_results": {}
+            "doctor_results": {},
         }
     }
 
-@app.post("/api/set_user_info")
-def set_user_info(user: Any = Body(...)):
-    ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
-    # First, check if the patient is found, adding if they are not
-    if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
-        gq.addUserInfo(user.first_name, user.last_name, user.dob)
-        patient_history: str = ""  # Can assume empty string, good to go
-    # If patient exists, get their history from Aurora db
-    else:
-        patient_history: str = gq.get_patient_history(user.first_name, user.last_name, user.dob)
-    # Initial model call to set up patient 'context'
-    inference(user_text=patient_history, first_call=True)
-    return { "success": True }
+# ---------------- Optional stub used by your dev flow ----------------
+
+class AnswerIn(BaseModel):
+    user_text: Optional[str] = ""
+    last_ans: Optional[int] = -1  # yes=1, no=0, skip=-1
 
 @app.post("/api/get_question")
-def get_question(payload: Any = Body(...)):
-    """
-    Accepts:
-      - 5                      -> last_ans=5
-      - "free text"            -> user_text="free text"
-      - {"last_ans": 1}        -> last_ans=1
-      - {"user_text": "hi"}    -> user_text="hi"
-      - {"last_ans": 1, "user_text": "hi"} -> both
-    """
-    last_ans: Optional[int] = None
-    user_text: Optional[str] = ''
+def get_question(payload: AnswerIn):
+    next_question = (
+        "Have you noticed any patterns or triggers?"
+        if (payload.last_ans or -1) == 1
+        else "Are you currently taking any medications?"
+    )
+    subspecialty_results = [
+        {"subspecialty_name": "Reproductive Endocrinology", "subspecialty_short": "REI", "rank": 1, "percent_match": 0.62},
+        {"subspecialty_name": "General Obstetrics",         "subspecialty_short": "OB",  "rank": 2, "percent_match": 0.23},
+        {"subspecialty_name": "Maternal Fetal Medicine",    "subspecialty_short": "MFM","rank": 3, "percent_match": 0.15},
+    ]
+    condition_results = [
+        {"condition": "PCOS",          "probability": 0.55},
+        {"condition": "Fibroids",      "probability": 0.20},
+        {"condition": "Endometriosis", "probability": 0.10},
+    ]
+    doctor_results = {"top1": "Smith", "top2": "Chen", "top3": "Patel"}
 
-    if isinstance(payload, dict):
-        payload = sanitize_json(payload)
-        la = int(payload.get("last_ans", -1))
-        ut = payload.get("user_text", '')
-        # map int to last_ans (avoid treating bool as int)
-        if isinstance(la, int) and not isinstance(la, bool):
-            last_ans = la
-        # map str to user_text
-        if isinstance(ut, str):
-            ut = ut.strip()
-            user_text = ut if ut else ''
-            # Attempt to add any user text to medical record - proven to be helpful
-            #if user_text != '':
-                #gq.addMedHistory(user_text)
+    return {
+        "results": {
+            "question": next_question,
+            "subspecialty_results": subspecialty_results,
+            "condition_results": condition_results,
+            "doctor_results": doctor_results,
+        }
+    }
 
-    elif isinstance(payload, int) and not isinstance(payload, bool):
-        last_ans = payload
-
-    elif isinstance(payload, str):
-        s = payload.strip()
-        user_text = s if s else ''
-        # Attempt to add any user text to medical record - proven to be helpful
-        #if user_text != '':
-            #gq.addMedHistory(user_text)
-
-    print(user_text, last_ans)
-
-    # choose which branch to run (prefer user_text if both are present)
-    if user_text!='':
-        results: dict = inference(user_text=user_text, last_ans=last_ans)
-    elif user_text=='':
-        results: dict = inference(last_ans=last_ans)
-    else:
-        raise HTTPException(status_code=422, detail="Provide an int (last_ans) and/or a string (user_text).")
-
-    return {"results": results}
-
+# ---------------- Dashboard APIs (keep as-is) ----------------
 
 @app.get("/api/dashboard/stats", response_model=model.DashboardStats)
 def dashboard_stats():
@@ -132,7 +126,7 @@ def dashboard_stats():
         "this_week": q_cases_this_week(),
     }
 
-@app.get("/api/triages", response_model=None)  # temporarily drop response_model to avoid 500 during coercion
+@app.get("/api/triages", response_model=None)  # keep flexible to avoid coercion issues
 def list_triages(
     q: Optional[str] = Query(None, description="Search by patient name, agent id, or case number"),
     page: int = Query(1, ge=1),
@@ -144,16 +138,13 @@ def list_triages(
     if isinstance(data, dict) and "items" in data:
         items = []
         for it in data["items"]:
-            it = dict(it)  # make mutable copy
-            # unify id as string; accept triage_id as fallback
+            it = dict(it)
             if "id" not in it:
                 if "triage_id" in it:
                     it["id"] = str(it["triage_id"])
                 else:
                     it["id"] = str(it.get("id", ""))
-            # case_number fallback
             it.setdefault("case_number", f"TRG-{it['id'].zfill(3) if isinstance(it['id'], str) and it['id'].isdigit() else it['id']}")
-            # created_date: coerce datetime -> ISO string; fall back from date_time
             if "created_date" in it and isinstance(it["created_date"], datetime):
                 it["created_date"] = it["created_date"].isoformat()
             elif "date_time" in it and isinstance(it["date_time"], datetime):
@@ -161,7 +152,7 @@ def list_triages(
             else:
                 it.setdefault("created_date", datetime.utcnow().isoformat())
 
-            # subspecialist_confidences may already be array or JSON string; normalize to array
+            # If some helper returns JSON in a string, try to parse; otherwise default to []
             val = it.get("subspecialist_confidences")
             if isinstance(val, str):
                 try:
@@ -172,9 +163,7 @@ def list_triages(
             elif not isinstance(val, list):
                 it["subspecialist_confidences"] = []
 
-            # booleans default
             it["sent_to_epic"] = bool(it.get("sent_to_epic", False))
-
             items.append(it)
 
         total = data.get("total", len(items))
@@ -187,7 +176,7 @@ def list_triages(
             "total_pages": total_pages,
         }
 
-    # If helper returned a list (legacy), wrap it into the expected envelope.
+    # Legacy list → wrap
     if isinstance(data, list):
         items = []
         for idx, it in enumerate(data, 1):
@@ -218,15 +207,12 @@ def list_triages(
             "total_pages": (total + page_size - 1) // page_size,
         }
 
-    # If something else came back, surface it for now to avoid opaque 500s.
     return {"items": [], "page": page, "page_size": page_size, "total": 0, "total_pages": 0}
+
+# ---------------- Triage lifecycle ----------------
 
 @app.post("/api/triage/start", response_model=triage.StartTriageResponse)
 def api_start_triage(req: triage.StartTriageRequest):
-    """
-    1) create or find client
-    2) create triage row with agent_id + client_id
-    """
     client_id = gq.q_get_or_create_client(
         req.client_first_name.strip(),
         req.client_last_name.strip(),
@@ -239,54 +225,83 @@ def api_start_triage(req: triage.StartTriageRequest):
     
     return {"triage_id": triage_id, "client_id": client_id}
 
-@app.post("/api/triage/answer", response_model=triage.AnswerResponse)
+# NOTE: drop response_model here so we can include `condition_results` exactly as model returns
+@app.post("/api/triage/answer")
 def api_answer(req: triage.AnswerRequest):
-    """
-    1) write Q/A to triage_question
-    2) run model inference to get updated confidences and top doctors
-    3) persist those updates on triage row
-    4) return the next question + current state to the frontend
-    """
-    # 1) persist Q/A
-    gq.q_insert_triage_question(req.triage_id, req.question, req.answer)
+    try:
+        # 1) persist Q/A
+        gq.q_insert_triage_question(req.triage_id, req.question, req.answer)
 
-    # 2) inference - your file already exposes `inference()` used elsewhere
-    #    It returns a dict with "subspecialty_results" and "doctor_results" + maybe "next_question"
-    result = inference(user_text=req.answer)
+        # 2) run model; it needs last_ans to advance
+        print(f"Calling inference with: user_text='{req.answer}', last_ans={req.last_ans}")
+        result = inference(user_text=req.answer, last_ans=(req.last_ans or -1)) or {}
+        print(f"Inference result: {result}")
 
-    # 3) persist updated confidences + doctor picks
-    subs = result.get("subspecialty_results") or []
-    docs = result.get("doctor_results") or []
-    gq.q_update_triage_from_inference(req.triage_id, subs, docs)
+        subs = result.get("subspecialty_results") or []
+        conds = result.get("condition_results") or []
+        docs_raw = result.get("doctor_results")
 
-    # 4) shape response
-    return {
-        "triage_id": req.triage_id,
-        "next_question": result.get("next_question"),
-        "subspecialty_results": [
-            {"subspecialty_name": s.get("subspecialty_name", ""), "percent_match": int(float(s.get("percent_match", 0)))}
-            for s in subs
-        ],
-        "doctor_results": [
-            {"rank": d.get("rank", ""), "name": d.get("name", "")}
-            for d in docs
-        ],
-    }
+        # normalize doctors -> list[{rank,name}]
+        def _normalize_doctors(x):
+            if isinstance(x, dict):
+                # Model returns {"Best Match": "Name", "Second Match": "Name", ...}
+                order = [
+                    (1, x.get("Best Match")),
+                    (2, x.get("Second Match")),
+                    (3, x.get("Third Match"))
+                ]
+                return [{"rank": rank, "name": n} for rank, n in order if n]
+            if isinstance(x, list):
+                # Already a list, ensure rank is int
+                return [{"rank": int(str(d.get("rank", i + 1)).replace("Top ", "")), "name": d.get("name", "")} for i, d in enumerate(x)]
+            return []
+
+        docs = _normalize_doctors(docs_raw)
+
+        # 3) persist subspecialist confidences + top-3 doctors
+        gq.q_update_triage_from_inference(req.triage_id, subs, conds, docs)
+
+        # 4) shape response (subspecialist percent -> 0–100 int)
+        def _as_pct(v):
+            try:
+                f = float(v)
+            except Exception:
+                return 0
+            return int(round(f * 100)) if 0.0 <= f <= 1.0 else int(round(f))
+
+        subs_out = [
+            {
+                "subspecialty_name": s.get("subspecialty_name", ""),
+                "subspecialty_short": s.get("subspecialty_short", ""),
+                "rank": s.get("rank", 0),
+                "percent_match": _as_pct(s.get("percent_match", 0)),
+            } for s in subs
+        ]
+
+        # CRITICAL: your model returns 'question', not 'next_question'
+        next_q = result.get("question")
+        if not isinstance(next_q, str) or not next_q.strip():
+            raise HTTPException(status_code=500, detail="Model did not return 'question'")
+
+        # For frontend response, convert rank back to "Top 1" format
+        docs_out = [{"rank": f"Top {d['rank']}", "name": d["name"]} for d in docs]
+
+        return {
+            "triage_id": req.triage_id,
+            "next_question": next_q,
+            "subspecialty_results": subs_out,
+            "condition_results": conds,
+            "doctor_results": docs_out,  # Use formatted version for frontend
+        }
+    
+    except Exception as e:
+        print(f"ERROR in api_answer: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error processing answer: {str(e)}")
+
 
 @app.post("/api/triage/end")
 def api_end_triage(req: triage.EndTriageRequest):
-    """
-    Finalize triage: store optional agent notes.
-    """
     gq.q_end_triage(req.triage_id, req.agent_notes)
     return {"ok": True}
-
-# Helper to directly download the fhir JSON, POC
-@app.get("/api/{triage_id}.json")
-def download_referral(triage_id: int):
-    payload = build_referral_json(triage_id)
-    if not payload:
-        raise HTTPException(status_code=404, detail="Triage not found")
-    # Force download
-    headers = {"Content-Disposition": f'attachment; filename="referral-{triage_id}.json"'}
-    return JSONResponse(content=payload, headers=headers)

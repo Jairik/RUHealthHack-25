@@ -30,7 +30,7 @@ export default function Home() {
     {
       icon: Shield,
       title: "Complete Records",
-      description: "Every conversation is securely cached with full history, recommendations, and notes for compliance and quality assurance",
+      description: "Every conversation is saved with full history, recommendations, and notes for compliance and quality assurance",
       gradient: "from-indigo-500 via-blue-500 to-cyan-500 dark:from-indigo-600 dark:via-blue-600 dark:to-cyan-600"
     }
   ];

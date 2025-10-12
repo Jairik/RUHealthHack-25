@@ -217,13 +217,289 @@ export default function Dashboard() {
             </Card>
           ) : (
             <AnimatePresence>
-              {filteredCases.map((case_, index) => (
-                <motion.div key={case_.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.05 }}>
-                  {/* You can keep your existing case rendering logic here — unchanged */}
-                  {/* Everything below stays the same as your original file */}
-                </motion.div>
-              ))}
-            </AnimatePresence>
+             {filteredCases.map((case_, index) => (
+               <motion.div
+                 key={case_.id}
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ duration: 0.4, delay: index * 0.05 }}
+               >
+                 <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900 hover:shadow-2xl transition-all">
+                   <CardHeader>
+                     <div className="flex items-start justify-between gap-4">
+                       <div className="flex-1">
+                         <div className="flex items-center gap-3 mb-2 flex-wrap">
+                           {/* Case Number Badge */}
+                           {case_.case_number && (
+                             <Badge className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 text-white border-0 px-3 py-1 font-black">
+                               {case_.case_number}
+                             </Badge>
+                           )}
+                           <CardTitle className="text-2xl font-black text-indigo-900 dark:text-purple-100">
+                             {case_.patient_first_name} {case_.patient_last_name}
+                           </CardTitle>
+                           <Badge className="bg-purple-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-purple-400 dark:border-purple-600 px-3 py-1 font-bold">
+                             Agent #{case_.agent_id}
+                           </Badge>
+                           {case_.sent_to_epic && (
+                             <Badge className="bg-green-200 dark:bg-green-900 text-green-900 dark:text-green-100 border-2 border-green-400 dark:border-green-600 px-3 py-1 font-bold">
+                               <CheckCircle2 className="w-3 h-3 mr-1" />
+                               Sent to Epic
+                             </Badge>
+                           )}
+                         </div>
+                         <div className="flex flex-wrap items-center gap-3">
+                           <Badge className="bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600 px-3 py-1 font-bold">
+                             <Calendar className="w-3 h-3 mr-1" />
+                             {format(new Date(case_.created_date), 'MMM d, yyyy - h:mm a')}
+                           </Badge>
+                           <Badge className={`${getConfidenceColor(case_.confidence_score)} border-2 px-3 py-1 font-bold`}>
+                             {case_.confidence_score}% Confidence
+                           </Badge>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <Button
+                           onClick={() => handleSendToEpic(case_)}
+                           disabled={case_.sent_to_epic || sendingToEpic === case_.id}
+                           className={`${
+                             case_.sent_to_epic
+                               ? 'bg-green-600 dark:bg-green-700'
+                               : 'bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 hover:from-indigo-700 hover:to-purple-700'
+                           } text-white font-bold`}
+                         >
+                           {sendingToEpic === case_.id ? (
+                             <>
+                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                               Sending...
+                             </>
+                           ) : case_.sent_to_epic ? (
+                             <>
+                               <CheckCircle2 className="w-4 h-4 mr-2" />
+                               Sent to Epic
+                             </>
+                           ) : (
+                             <>
+                               <Send className="w-4 h-4 mr-2" />
+                               Send to Epic
+                             </>
+                           )}
+                         </Button>
+                         <Button
+                           variant="ghost"
+                           onClick={() => setExpandedCase(expandedCase === case_.id ? null : case_.id)}
+                           className="text-indigo-600 dark:text-purple-400"
+                         >
+                           {expandedCase === case_.id ? (
+                             <ChevronUp className="w-6 h-6" />
+                           ) : (
+                             <ChevronDown className="w-6 h-6" />
+                           )}
+                         </Button>
+                       </div>
+                     </div>
+                   </CardHeader>
+                  
+                   <CardContent>
+                     {/* Summary */}
+                     <div className="grid md:grid-cols-2 gap-6 mb-4">
+                       <div className="p-4 bg-indigo-100 dark:bg-purple-900/30 rounded-xl border-2 border-indigo-300 dark:border-purple-700">
+                         <p className="text-sm font-bold text-indigo-600 dark:text-purple-400 mb-2">
+                           <Sparkles className="w-3 h-3 inline mr-1" />
+                           Recommendation
+                         </p>
+                         <p className="text-lg font-black text-indigo-900 dark:text-purple-100">
+                           {case_.final_recommendation}
+                         </p>
+                       </div>
+                      
+                       <div className="p-4 bg-purple-100 dark:bg-pink-900/30 rounded-xl border-2 border-purple-300 dark:border-pink-700">
+                         <p className="text-sm font-bold text-purple-600 dark:text-pink-400 mb-2">
+                           <Users className="w-3 h-3 inline mr-1" />
+                           Recommended Doctor
+                         </p>
+                         <p className="text-lg font-black text-indigo-900 dark:text-pink-100">
+                           {case_.recommended_doctor}
+                         </p>
+                       </div>
+                     </div>
+
+
+                     {/* Epic Status */}
+                     {case_.sent_to_epic && case_.epic_sent_date && (
+                       <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-xl border-2 border-green-300 dark:border-green-700">
+                         <p className="text-sm font-semibold text-green-800 dark:text-green-200">
+                           <CheckCircle2 className="w-4 h-4 inline mr-1" />
+                           Sent to Epic EHR on {format(new Date(case_.epic_sent_date), 'MMM d, yyyy - h:mm a')}
+                         </p>
+                       </div>
+                     )}
+
+
+                     {/* Expanded Details */}
+                     <AnimatePresence>
+                       {expandedCase === case_.id && (
+                         <motion.div
+                           initial={{ opacity: 0, height: 0 }}
+                           animate={{ opacity: 1, height: "auto" }}
+                           exit={{ opacity: 0, height: 0 }}
+                           transition={{ duration: 0.3 }}
+                           className="space-y-6 pt-6 border-t-2 border-indigo-200 dark:border-purple-800"
+                         >
+                           {/* Health History */}
+                           {case_.health_history && case_.health_history.length > 0 && (
+                             <div>
+                               <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-3">
+                                 Health History:
+                               </p>
+                               <div className="flex flex-wrap gap-2">
+                                 {case_.health_history.map((condition, idx) => (
+                                   <Badge
+                                     key={idx}
+                                     className="bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100 border-2 border-orange-400 dark:border-orange-600 px-3 py-1 font-bold"
+                                   >
+                                     {condition}
+                                   </Badge>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+
+
+                           {/* Conversation History */}
+                           {case_.conversation_history && case_.conversation_history.length > 0 && (
+                             <div>
+                               <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-4">
+                                 Conversation ({case_.conversation_history.length} Q&A):
+                               </p>
+                               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                 {case_.conversation_history.map((qa, idx) => (
+                                   <div key={idx} className="space-y-2">
+                                     <div className="p-3 bg-indigo-100 dark:bg-purple-900/30 rounded-lg border border-indigo-300 dark:border-purple-700">
+                                       <p className="text-xs font-bold text-indigo-600 dark:text-purple-400 mb-1">Q{idx + 1}:</p>
+                                       <p className="text-sm font-semibold text-indigo-900 dark:text-purple-100">{qa.question}</p>
+                                     </div>
+                                     {qa.answer && (
+                                       <div className="p-3 bg-purple-100 dark:bg-pink-900/30 rounded-lg border border-purple-300 dark:border-pink-700 ml-4">
+                                         <p className="text-xs font-bold text-purple-600 dark:text-pink-400 mb-1">A:</p>
+                                         <p className="text-sm font-semibold text-indigo-900 dark:text-pink-100">{qa.answer}</p>
+                                       </div>
+                                     )}
+                                   </div>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+
+
+                           {/* Subspecialist Confidences */}
+                           {case_.subspecialist_confidences && case_.subspecialist_confidences.length > 0 && (
+                             <div>
+                               <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-4">
+                                 Final Subspecialist Confidences:
+                               </p>
+                               <div className="grid md:grid-cols-2 gap-3">
+                                 {case_.subspecialist_confidences.map((sub, idx) => (
+                                   <div key={idx} className="flex items-center justify-between p-3 bg-pink-100 dark:bg-rose-900/30 rounded-lg border border-pink-300 dark:border-rose-700">
+                                     <span className="text-sm font-bold text-pink-900 dark:text-rose-100">{sub.name}</span>
+                                     <Badge className={`${getConfidenceColor(sub.confidence)} border font-bold`}>
+                                       {sub.confidence}%
+                                     </Badge>
+                                   </div>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+
+
+                           {/* Doctor Matches - Clickable */}
+                           {case_.recommended_doctor && (
+                             <div>
+                               <p className="text-base font-bold text-indigo-800 dark:text-purple-200 mb-4">
+                                 Recommended Doctors (Click to View Availability):
+                               </p>
+                               <div className="grid md:grid-cols-2 gap-3">
+                                 {/* MOCK DATA - Doctor matches */}
+                                 {[
+                                   {
+                                     name: case_.recommended_doctor.replace("Dr. ", ""),
+                                     specialty: case_.final_recommendation,
+                                     availability: "Available",
+                                     credentials: "MD, FACOG"
+                                   },
+                                   {
+                                     name: "Emily Chen", // Hardcoded name, but specialty from next confidence
+                                     specialty: case_.subspecialist_confidences?.[1]?.name || "General OB/GYN",
+                                     availability: "Available",
+                                     credentials: "MD, FACOG"
+                                   },
+                                   {
+                                     name: "Maria Rodriguez", // Hardcoded name, but specialty from next confidence
+                                     specialty: case_.subspecialist_confidences?.[2]?.name || "Reproductive Endocrinology",
+                                     availability: "Next Week",
+                                     credentials: "DO, FACOG"
+                                   }
+                                 ].map((doctor, docIdx) => (
+                                   <button
+                                     key={docIdx}
+                                     onClick={() => handleDoctorClick(doctor)}
+                                     className="p-4 bg-purple-100 dark:bg-pink-900/30 rounded-xl border-2 border-purple-300 dark:border-pink-700 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
+                                   >
+                                     <div className="flex items-start justify-between mb-2">
+                                       <div>
+                                         <Badge className={`${
+                                           docIdx === 0
+                                             ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                             : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
+                                         } font-black mb-2`}>
+                                           {docIdx === 0 ? "Best Match ⭐" : docIdx === 1 ? "Top Match" : "Second Match"}
+                                         </Badge>
+                                         <p className="text-lg font-black text-indigo-900 dark:text-pink-100">
+                                           Dr. {doctor.name}
+                                         </p>
+                                         <p className="text-sm font-semibold text-purple-700 dark:text-pink-300">
+                                           {doctor.specialty}
+                                         </p>
+                                       </div>
+                                       <Badge className="bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100 border-2 border-rose-400 dark:border-rose-600 font-bold">
+                                         {doctor.availability}
+                                       </Badge>
+                                     </div>
+                                     {doctor.credentials && (
+                                       <p className="text-xs text-purple-600 dark:text-pink-400 font-semibold">
+                                         {doctor.credentials}
+                                       </p>
+                                     )}
+                                     <p className="text-xs text-purple-500 dark:text-pink-500 mt-2 font-semibold">
+                                       Click to view availability →
+                                     </p>
+                                   </button>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+
+
+                           {/* Agent Notes */}
+                           {case_.agent_notes && (
+                             <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded-xl border-2 border-yellow-300 dark:border-yellow-700">
+                               <p className="text-sm font-bold text-yellow-800 dark:text-yellow-400 mb-2">
+                                 Agent Notes:
+                               </p>
+                               <p className="text-base font-semibold text-yellow-900 dark:text-yellow-200">
+                                 {case_.agent_notes}
+                               </p>
+                             </div>
+                           )}
+                         </motion.div>
+                       )}
+                     </AnimatePresence>
+                   </CardContent>
+                 </Card>
+               </motion.div>
+             ))}
+           </AnimatePresence>
+
           )}
         </div>
       </div>

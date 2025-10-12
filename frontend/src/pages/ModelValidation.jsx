@@ -9,7 +9,7 @@ export default function ModelValidation({
   trainingPlotUrl = "/repr_training.png",
   mcptPlotUrl = "/MCPT_val_1.png",
   accuracy = "94%",
-  incorrectRate = "~25%",
+  incorrectRate = "~6%",
   sampleCount = "1,000 (synthetic)",
 } = {}) {
   // grid layout that's easy to reshape
@@ -34,7 +34,7 @@ export default function ModelValidation({
             </span>
           </div>
           <h1 className="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-600 dark:from-indigo-300 dark:via-violet-300 dark:to-pink-300 bg-clip-text text-transparent">
-            Subspecialty Recommendation — Validation Dashboard
+            Subspecialty Recommendation — Our Model
           </h1>
           <p className="mt-2 text-base md:text-lg text-indigo-800/80 dark:text-violet-200">
             TF-IDF (1–2 gram) + One-vs-Rest Logistic Regression (probabilistic) for women’s health subspecialty routing.
@@ -83,7 +83,7 @@ export default function ModelValidation({
 
 function StatsRow({ accuracy, incorrectRate, sampleCount, index = 0 }) {
   const stats = [
-    { label: "Overall Accuracy", value: accuracy, Icon: Award, color: "from-indigo-500 to-violet-500" },
+    { label: "Overall Subspecialist Prediction Accuracy", value: accuracy, Icon: Award, color: "from-indigo-500 to-violet-500" },
     { label: "Incorrect Subspecialty Directions", value: incorrectRate, Icon: CheckCircle2, color: "from-pink-500 to-rose-500" },
     { label: "Validation / Synthesis Size", value: sampleCount, Icon: BarChart3, color: "from-emerald-500 to-teal-500" },
   ];

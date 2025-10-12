@@ -60,7 +60,7 @@ export default function AgentTriage() {
         return;
       }
 
-      const startRes = await fetch('http://127.0.0.1:8000/api/triage/start', {
+      const startRes = await fetch('http://localhost:8000/api/triage/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,7 +101,7 @@ export default function AgentTriage() {
         freeText = answer;
       }
 
-      const res = await fetch('http://127.0.0.1:8000/api/triage/answer', {
+      const res = await fetch('http://localhost:8000/api/triage/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -147,7 +147,7 @@ export default function AgentTriage() {
   const handleSaveAndEnd = async () => {
     setSaving(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/triage/end', {
+      const res = await fetch('http://localhost:8000/api/triage/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

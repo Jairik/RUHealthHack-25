@@ -220,67 +220,83 @@ def api_start_triage(req: triage.StartTriageRequest):
     )
     triage_id = gq.q_start_triage(req.agent_id, client_id)  # <-- req.agent_id is INT
     # optional: seed/reset your model per triage if you want
-    # inference(user_text="", first_call=True)
+    inference(user_text="", first_call=True)
     return {"triage_id": triage_id, "client_id": client_id}
 
 # NOTE: drop response_model here so we can include `condition_results` exactly as model returns
-@app.post("/api/triage/answer")  # no response_model to keep payload flexible
+@app.post("/api/triage/answer")
 def api_answer(req: triage.AnswerRequest):
-    # 1) persist Q/A
-    gq.q_insert_triage_question(req.triage_id, req.question, req.answer)
+    try:
+        # 1) persist Q/A
+        gq.q_insert_triage_question(req.triage_id, req.question, req.answer)
 
-    # 2) run model; it needs last_ans to advance
-    result = inference(user_text=req.answer, last_ans=(req.last_ans or -1)) or {}
+        # 2) run model; it needs last_ans to advance
+        print(f"Calling inference with: user_text='{req.answer}', last_ans={req.last_ans}")
+        result = inference(user_text=req.answer, last_ans=(req.last_ans or -1)) or {}
+        print(f"Inference result: {result}")
 
-    subs = result.get("subspecialty_results") or []
-    conds = result.get("condition_results") or []
-    docs_raw = result.get("doctor_results")
+        subs = result.get("subspecialty_results") or []
+        conds = result.get("condition_results") or []
+        docs_raw = result.get("doctor_results")
 
-    # normalize doctors -> list[{rank,name}]
-    def _normalize_doctors(x):
-        if isinstance(x, dict):
-            order = [("Top 1", x.get("Best Match")),
-                     ("Top 2", x.get("Second Match")),
-                     ("Top 3", x.get("Third Match"))]
-            return [{"rank": r, "name": n} for r, n in order if n]
-        if isinstance(x, list):
-            return [{"rank": d.get("rank", f"Top {i+1}"), "name": d.get("name", "")} for i, d in enumerate(x)]
-        return []
+        # normalize doctors -> list[{rank,name}]
+        def _normalize_doctors(x):
+            if isinstance(x, dict):
+                # Model returns {"Best Match": "Name", "Second Match": "Name", ...}
+                order = [
+                    (1, x.get("Best Match")),
+                    (2, x.get("Second Match")),
+                    (3, x.get("Third Match"))
+                ]
+                return [{"rank": rank, "name": n} for rank, n in order if n]
+            if isinstance(x, list):
+                # Already a list, ensure rank is int
+                return [{"rank": int(str(d.get("rank", i + 1)).replace("Top ", "")), "name": d.get("name", "")} for i, d in enumerate(x)]
+            return []
 
-    docs = _normalize_doctors(docs_raw)
+        docs = _normalize_doctors(docs_raw)
 
-    # 3) persist subspecialist confidences + top-3 doctors
-    gq.q_update_triage_from_inference(req.triage_id, subs, docs)
+        # 3) persist subspecialist confidences + top-3 doctors
+        gq.q_update_triage_from_inference(req.triage_id, subs, conds, docs)
 
-    # 4) shape response (subspecialist percent -> 0–100 int)
-    def _as_pct(v):
-        try:
-            f = float(v)
-        except Exception:
-            return 0
-        return int(round(f * 100)) if 0.0 <= f <= 1.0 else int(round(f))
+        # 4) shape response (subspecialist percent -> 0–100 int)
+        def _as_pct(v):
+            try:
+                f = float(v)
+            except Exception:
+                return 0
+            return int(round(f * 100)) if 0.0 <= f <= 1.0 else int(round(f))
 
-    subs_out = [
-        {
-            "subspecialty_name": s.get("subspecialty_name", ""),
-            "subspecialty_short": s.get("subspecialty_short", ""),
-            "rank": s.get("rank", 0),
-            "percent_match": _as_pct(s.get("percent_match", 0)),
-        } for s in subs
-    ]
+        subs_out = [
+            {
+                "subspecialty_name": s.get("subspecialty_name", ""),
+                "subspecialty_short": s.get("subspecialty_short", ""),
+                "rank": s.get("rank", 0),
+                "percent_match": _as_pct(s.get("percent_match", 0)),
+            } for s in subs
+        ]
 
-    # CRITICAL: your model returns 'question', not 'next_question'
-    next_q = result.get("question")
-    if not isinstance(next_q, str) or not next_q.strip():
-        raise HTTPException(status_code=500, detail="Model did not return 'question'")
+        # CRITICAL: your model returns 'question', not 'next_question'
+        next_q = result.get("question")
+        if not isinstance(next_q, str) or not next_q.strip():
+            raise HTTPException(status_code=500, detail="Model did not return 'question'")
 
-    return {
-        "triage_id": req.triage_id,
-        "next_question": next_q,
-        "subspecialty_results": subs_out,
-        "condition_results": conds,   # [{condition, probability or condition_results in 0..1}]
-        "doctor_results": docs,       # list[{rank,name}]
-    }
+        # For frontend response, convert rank back to "Top 1" format
+        docs_out = [{"rank": f"Top {d['rank']}", "name": d["name"]} for d in docs]
+
+        return {
+            "triage_id": req.triage_id,
+            "next_question": next_q,
+            "subspecialty_results": subs_out,
+            "condition_results": conds,
+            "doctor_results": docs_out,  # Use formatted version for frontend
+        }
+    
+    except Exception as e:
+        print(f"ERROR in api_answer: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error processing answer: {str(e)}")
 
 
 @app.post("/api/triage/end")

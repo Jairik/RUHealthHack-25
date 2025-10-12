@@ -441,5 +441,5 @@ export default function AgentTriage() {
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }

@@ -9,15 +9,13 @@ from backend.queries.dashboard_query import (
     q_search_triages, q_mark_sent_to_epic
 )
 from backend.model_inference import inference
-from fastapi import Body
+
 from backend.model import dashboard_model as model
 from typing import Any, Optional
 from fastapi import FastAPI, Body, HTTPException
-
 from typing import Optional
-# from backend.api.dashboard_api import router as dashboard_router
-#backend/queries/dashboard_query.py
 from backend.queries import dashboard_query as query
+from backend.queries import general_queries as gq
 
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -50,12 +48,13 @@ def health():
 def get_user_info(user: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
-    if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
-        # TODO Logic here to add to the DB
+    if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
+        gq.addUserInfo(user.first_name, user.last_name, user.dob)
         patient_history: str = ""
     # If found, get the patient history
     else:
         patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
+    # Initial model call to set up patient 'context'
     inference(user_text=patient_history, first_call=True)
     return { "success": True }
 

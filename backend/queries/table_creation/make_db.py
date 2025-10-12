@@ -52,6 +52,13 @@ CREATE TABLE IF NOT EXISTS client (
 );
 """
 
+create_client_history_table_sql: str = """
+CREATE TABLE IF NOT EXISTS client_history (
+    client_id INT PRIMARY KEY REFERENCES client(client_id) ON DELETE CASCADE,
+    history TEXT NOT NULL DEFAULT ''
+);
+"""
+
 create_doctor_insurance_table_sql: str = """
 CREATE TABLE IF NOT EXISTS doctor_insurance (
     doc_id INT NOT NULL REFERENCES doctor(doc_id),
@@ -99,10 +106,11 @@ ddl_statements = [
     ("triage_question", create_triage_question_table_sql)
 ]
 
-for name, sql in ddl_statements:
-    try:
-        execute_sql(sql)
-        print(f"OK: {name} created or already exists.")
-    except Exception as e:
-        print(f"FAILED creating {name}: {e}")
-        raise
+# for name, sql in ddl_statements:
+#     try:
+#         execute_sql(sql)
+#         print(f"OK: {name} created or already exists.")
+#     except Exception as e:
+#         print(f"FAILED creating {name}: {e}")
+#         raise
+

@@ -9,7 +9,7 @@ from backend.queries.dashboard_query import (
     q_search_triages, q_mark_sent_to_epic
 )
 from backend.model_inference import inference
-from fastapi import Body
+
 from backend.model import dashboard_model as model
 from typing import Any, Optional
 from fastapi import FastAPI, Body, HTTPException
@@ -45,27 +45,17 @@ def health():
     return {"ok": True}
 
 @app.post("/api/get_user_info")
-def get_user_info(patient_history: Any = Body(...)):
+def get_user_info(user: Any = Body(...)):
     ''' Endpoint to get patient history, given patient first name, last name, and DOB '''
     # First, check if the patient is found
-<<<<<<< Updated upstream
     if(gq.validateClientExists(user.first_name, user.last_name, user.dob) == False):
         gq.addUserInfo(user.first_name, user.last_name, user.dob)
         patient_history: str = ""
-=======
-    if(True):#aws_queries.check_patient_exists(s3_client, user.first_name, user.last_name, user.dob) == False):
-        patient_history = (patient_history or "").strip()
-        results: dict = inference(user_text=patient_history, first_call=True)
-        return {"results": results}
->>>>>>> Stashed changes
-    # If found, get the patient history
     else:
         patient_history: str = aws_queries.get_patient_history(s3_client, user.first_name, user.last_name, user.dob)
     # Initial model call to set up patient 'context'
     inference(user_text=patient_history, first_call=True)
     return { "success": True }
-
-
 
 @app.post("/api/get_question")
 def get_question(payload: Any = Body(...)):

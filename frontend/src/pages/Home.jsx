@@ -30,7 +30,7 @@ export default function Home() {
     {
       icon: Shield,
       title: "Complete Records",
-      description: "Every conversation is saved with full history, recommendations, and notes for compliance and quality assurance",
+      description: "Every conversation is securely cached with full history, recommendations, and notes for compliance and quality assurance",
       gradient: "from-indigo-500 via-blue-500 to-cyan-500 dark:from-indigo-600 dark:via-blue-600 dark:to-cyan-600"
     }
   ];
@@ -38,7 +38,7 @@ export default function Home() {
   const stats = [
     { label: "Subspecialties", value: "6", icon: Brain },
     { label: "Doctor Network", value: "20+", icon: Users },
-    { label: "Triage Accuracy", value: "97~%", icon: TrendingUp },
+    { label: "Triage Accuracy", value: "~97%", icon: TrendingUp },
     { label: "HIPAA Compliant", value: "100%", icon: Lock }
   ];
 

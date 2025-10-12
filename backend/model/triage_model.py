@@ -1,11 +1,11 @@
-from typing import List, Optional
 from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
 
 class StartTriageRequest(BaseModel):
     agent_id: int
     client_first_name: str
     client_last_name: str
-    client_dob: str  # 'YYYY-MM-DD'
+    client_dob: str  # YYYY-MM-DD
 
 class StartTriageResponse(BaseModel):
     triage_id: int
@@ -15,20 +15,14 @@ class AnswerRequest(BaseModel):
     triage_id: int
     question: str
     answer: str
-
-class SubspecialtyConfidence(BaseModel):
-    subspecialty_name: str
-    percent_match: int
-
-class DoctorPick(BaseModel):
-    rank: str
-    name: str
+    last_ans: Optional[int] = -1  # yes=1, no=0, skip=-1
 
 class AnswerResponse(BaseModel):
     triage_id: int
-    next_question: Optional[str] = None
-    subspecialty_results: List[SubspecialtyConfidence] = []
-    doctor_results: List[DoctorPick] = []
+    next_question: str
+    subspecialty_results: List[Dict[str, Any]]
+    condition_results: List[Dict[str, Any]]
+    doctor_results: List[Dict[str, Any]]
 
 class EndTriageRequest(BaseModel):
     triage_id: int

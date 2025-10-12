@@ -96,11 +96,13 @@ def inference(
     first_call=False,
     last_ans=-1
 ):
+    backend_dir = Path(__file__).resolve().parent
+    data_dir = backend_dir / "data"
     
     print("user_text:", user_text)
     print("first_call:",first_call)
     print("last_ans:",last_ans)
-    model_dir = Path(__file__).resolve().parent / "model"
+    model_dir = backend_dir / "model"
 
     if(first_call):
         dump("",model_dir / 'work.str')
@@ -128,7 +130,7 @@ def inference(
 
     #print(f"loaded last_qid: {last_qid}")
 
-    sspec_full = pd.read_csv(Path('../backend/data/symptoms_full.csv')).values[:, 1:3]
+    sspec_full = pd.read_csv(data_dir / 'symptoms_full.csv').values[:, 1:3]
     sspec_map = sspec_full[:, 0].astype(np.int64)
     cond_map = sspec_full[:, 1]
 
@@ -149,7 +151,7 @@ def inference(
 
     if(len(sclr_idx)>0):
         #here for inference
-        sclr_vals = pd.read_csv(Path('../backend/data/symptoms_full.csv')).values[sclr_idx, 9].astype(np.float32)
+        sclr_vals = pd.read_csv(data_dir / 'symptoms_full.csv').values[sclr_idx, 9].astype(np.float32)
         out['probs'][sclr_idx] *= sclr_vals
 
     if(len(null_idx)>0):
@@ -191,7 +193,7 @@ def inference(
         #then we will call
         dump(next_qid, model_dir / 'last.qid')
 
-        question = pd.read_csv(Path('../backend/data/symptoms_full.csv')).values[next_qid, 8]
+        question = pd.read_csv(data_dir / 'symptoms_full.csv').values[next_qid, 8]
     
     else:
         question = 'Q_INIT'
@@ -201,9 +203,9 @@ def inference(
 
     topk_cond = [{"condition":cond_map[i[0]],"condition_results":round(i[1], 4)} for i in out['topk']]
 
-    doc_map = pd.read_csv(Path('../backend/data/cond_doc_map.csv')).values
+    doc_map = pd.read_csv(data_dir / 'cond_doc_map.csv').values
 
-    doc_names = pd.read_csv(Path('../backend/data/doc_sspec_map.csv')).values
+    doc_names = pd.read_csv(data_dir / 'doc_sspec_map.csv').values
 
     doc_mapper = out['probs'][doc_map[:, 0]]
 
@@ -233,7 +235,7 @@ def inference(
 
     p_trans_sums = power_transform(sspec_sum, np.exp(iter_cnt))
 
-    sspecs = pd.read_csv(Path('../backend/data/sspec_key_map.csv')).values
+    sspecs = pd.read_csv(data_dir / 'sspec_key_map.csv').values
 
     order_idx = np.argsort(-p_trans_sums)
 

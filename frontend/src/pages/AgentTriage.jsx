@@ -29,6 +29,8 @@ export default function AgentTriage() {
   const [saving, setSaving] = useState(false);
   const [caseNumber, setCaseNumber] = useState("");
   const { triageData, setTriageData } = useTriageContext();
+  const [triageId, setTriageId] = useState(null);
+
 
   // MOCK DATA - Questions pool
   const mockQuestions = [
@@ -50,84 +52,34 @@ export default function AgentTriage() {
 
   const handlePatientSubmit = async (patientData) => {
     setLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     try {
-      setAgentId(patientData.agentId);
-      
-      // Generate unique case number
-      const newCaseNumber = generateCaseNumber();
-      setCaseNumber(newCaseNumber);
-      
-      // PLACEHOLDER: API call would go here
-      // Example: const response = await fetch('/api/patient-lookup', { method: 'POST', body: JSON.stringify(patientData) });
-      
-      // MOCK DATA - Patient information
-      const mockPatientData = {
-        firstName: patientData.firstName,
-        lastName: patientData.lastName,
-        dob: patientData.dob,
-        healthHistory: ["PCOS", "Irregular periods", "Previous surgery"]
-      };
-      
-      const mockInitialQuestion = mockQuestions[0];
-      // ==== START REPLACE (from your PLACEHOLDER down through the mock updates) ====
+      const agentIdInt = Number.parseInt(patientData.agentId, 10);
+      if (!Number.isInteger(agentIdInt)) {
+        alert("Agent ID must be a whole number.");
+        setLoading(false);
+        return;
+      }
 
-      const res = await fetch('http://127.0.0.1:8000/api/get_user_info', {
+      const startRes = await fetch('http://localhost:8000/api/triage/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mockPatientData.healthHistory.join(" ")), // <— bare JSON string, made on the spot
+        body: JSON.stringify({
+          agent_id: agentIdInt, // <-- INT
+          client_first_name: patientData.firstName,
+          client_last_name: patientData.lastName,
+          client_dob: patientData.dob,
+        }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!startRes.ok) throw new Error(`start ${startRes.status}`);
+      const started = await startRes.json();
+      setTriageId(started.triage_id);
 
-      const data = await res.json();
-      const r = data?.results ?? {};
-
-      console.log(data)
-      const answer = 'answer'
-
-      setPatient(mockPatientData)
-      // add the just-answered pair to history
-      //setQuestionHistory(prev => [...prev, { question: 'currentQuestion', answer }]);
-
-      // question may be double-quoted like "\"...\"" — clean safely
-      const nextQ = "What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?";
-      setCurrentQuestion(nextQ || '(no question returned)');
-
-      // subspecialties → { name, short, rank, confidence (0–100) }
-      setSubspecialists(
-        (r.subspecialty_results ?? [])
-          .map(s => ({
-            name: s.subspecialty_name,
-            short: s.subspecialty_short,
-            rank: s.rank,
-            confidence: Math.round((s.percent_match ?? 0) * 100),
-          }))
-          .sort((a, b) => b.confidence - a.confidence)
-      );
-
-      // conditions → { name, probability (0–100) }
-      setConditions(
-        (r.condition_results ?? [])
-          .map(c => ({
-            name: c.condition,
-            probability: Math.round((c.condition_results ?? 0) * 100),
-          }))
-          .sort((a, b) => b.probability - a.probability)
-      );
-
-      // doctors (optional)
-      setDoctorMatches(
-        r.doctor_results
-          ? Object.entries(r.doctor_results).map(([label, name]) => ({ label, name }))
-          : []
-      );
-
+      setAgentId(agentIdInt); // keep as number in state if you like
+      setPatient({ firstName: patientData.firstName, lastName: patientData.lastName, dob: patientData.dob, healthHistory: [] });
+      setCurrentQuestion("What is the primary reason for today's call?\n Are you currently pregnant?\n Do you have any abnormal bleeding?");
       setStep(2);
-    } catch (error) {
-      console.error("Error retrieving patient data:", error);
+    } catch (e) {
+      console.error(e);
       alert("Error retrieving patient information. Please try again.");
     } finally {
       setLoading(false);
@@ -135,86 +87,51 @@ export default function AgentTriage() {
   };
 
   const handleAnswerSubmit = async (answer) => {
-    
     setLoading(true);
-    
     try {
-      // ==== START REPLACE (remove everything from the PLACEHOLDER comment down to the mock updates) ====
-
-      // --- tiny parse+payload ---
       const MAP = { yes: 1, no: 0, skip: -1 };
       const norm = s => (s || '').trim().toLowerCase();
-
-      let last_ans, freeText;
+      let last_ans = -1, freeText = '';
 
       if (typeof answer === 'string' && answer.includes('-')) {
-        const [head, tail] = answer.split(/\s*-\s*/, 2); // remove the " - " and trim around it
+        const [head, tail] = answer.split(/\s*-\s*/, 2);
         last_ans = MAP[norm(head)] ?? -1;
-        freeText = (tail || '').trim() || null;
+        freeText = (tail || '').trim();
       } else if (typeof answer === 'string') {
-        freeText = answer
-        last_ans = -1
-      } else {
-        last_ans = MAP[norm(answer)] ?? -1;
-        freeText = null;
+        freeText = answer;
       }
 
-      const body = JSON.stringify({user_text: freeText ?? '' , last_ans});
-
-      // use in your fetch:
-      const res = await fetch('http://127.0.0.1:8000/api/get_question', {
+      const res = await fetch('http://localhost:8000/api/triage/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body,
+        body: JSON.stringify({
+          triage_id: triageId,
+          question: currentQuestion,
+          answer: freeText || (typeof answer === 'string' ? answer : String(answer ?? '')),
+          last_ans, // <-- CRITICAL
+        }),
       });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`answer ${res.status}`);
       const data = await res.json();
-      const r = data?.results ?? {};
-      console.log(data)
 
-      // 1) add the just-answered pair to history (using the current question shown)
       setQuestionHistory(prev => [...prev, { question: currentQuestion, answer }]);
+      setCurrentQuestion(data.next_question || '(no question)');
 
-      // 2) next question (backend returns "\"...\"" — remove wrapping quotes)
-      const nextQ = typeof r.question === 'string'
-        ? r.question.replace(/^"(.*)"$/, '$1')
-        : '';
-      setCurrentQuestion(nextQ || '(no question returned)');
-
-      // 3) subspecialties → { name, confidence } (0–100), keep extra fields if you need them
       setSubspecialists(
-        (r.subspecialty_results ?? [])
-          .map(s => ({
-            name: s.subspecialty_name,
-            short: s.subspecialty_short,
-            rank: s.rank,
-            confidence: Math.round((s.percent_match ?? 0) * 100),
-          }))
-          .sort((a, b) => b.confidence - a.confidence)
+        (data.subspecialty_results ?? [])
+          .map(s => ({ name: s.subspecialty_name, short: s.subspecialty_short, rank: s.rank, confidence: Math.round(Number(s.percent_match ?? 0)) }))
+          .sort((a,b) => b.confidence - a.confidence)
       );
 
-      // 4) conditions → { name, probability } (0–100)
       setConditions(
-        (r.condition_results ?? [])
-          .map(c => ({
-            name: c.condition,
-            probability: Math.round((c.condition_results ?? 0) * 100),
-          }))
-          .sort((a, b) => b.probability - a.probability)
+        (data.condition_results ?? [])
+          .map(c => ({ name: c.condition, probability: Math.round(Number((c.condition_results ?? c.probability ?? 0)) * 100) }))
+          .sort((a,b) => b.probability - a.probability)
       );
 
-      // 5) doctors → simple list; adapt if your UI expects more fields
-      setDoctorMatches(
-        r.doctor_results
-          ? Object.entries(r.doctor_results).map(([label, name]) => ({ label, name }))
-          : []
-      );
-
-      // ==== END REPLACE ====
-
-    } catch (error) {
-      console.error("Error processing answer:", error);
+      setDoctorMatches((data.doctor_results ?? []).map(d => ({ label: d.rank, name: d.name })));
+    } catch (e) {
+      console.error(e);
       alert("Error processing answer. Please try again.");
     } finally {
       setLoading(false);
@@ -222,66 +139,48 @@ export default function AgentTriage() {
   };
 
   const handleEndConversation = () => {
+    const newCaseNumber = generateCaseNumber();
+    setCaseNumber(newCaseNumber);
     setShowEndDialog(true);
   };
 
   const handleSaveAndEnd = async () => {
     setSaving(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
     try {
-      const topSubspecialist = subspecialists[0];
-      const topDoctor = doctorMatches[0];
-      const topCondition = conditions[0];
-      
-      // MOCK DATA - Triage case that would be saved
-      const triageData = {
-        case_number: caseNumber,
-        agent_id: agentId,
-        patient_first_name: patient.firstName,
-        patient_last_name: patient.lastName,
-        patient_dob: patient.dob,
-        health_history: patient.healthHistory || [],
-        conversation_history: [
-          ...questionHistory,
-          { question: currentQuestion, answer: "" }
-        ],
-        final_recommendation: topSubspecialist.name,
-        confidence_score: topSubspecialist.confidence,
-        recommended_doctor: topDoctor.name,
-        subspecialist_confidences: subspecialists,
-        condition_probabilities: conditions,
-        top_condition: topCondition.name,
-        top_condition_probability: topCondition.probability,
-        status: "completed",
-        agent_notes: agentNotes
-      };
-
-      // PLACEHOLDER: API call would go here
-      // Example: await fetch('/api/triage-cases', { method: 'POST', body: JSON.stringify(triageData) });
-      
-      console.log("Triage case data (would be sent to API):", triageData);
-      
-      // Store in localStorage as mock database
-      const existingCases = JSON.parse(localStorage.getItem('triageCases') || '[]');
-      existingCases.unshift({
-        ...triageData,
-        id: Date.now().toString(),
-        created_date: new Date().toISOString()
+      const res = await fetch('http://localhost:8000/api/triage/end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          triage_id: triageId,
+          agent_notes: agentNotes,
+        }),
       });
-      localStorage.setItem('triageCases', JSON.stringify(existingCases));
-      
-      // Navigate to dashboard
-      navigate(createPageUrl("Dashboard"));
+
+      if (!res.ok) {
+        throw new Error(`Failed to save: ${res.status}`);
+      }
+
+      setTriageData({
+        triageId,
+        patient,
+        caseNumber,
+        subspecialists,
+        conditions,
+        doctorMatches,
+        questionHistory,
+        agentNotes,
+        agentId,
+      });
+
+      navigate('/dashboard');
     } catch (error) {
-      console.error("Error saving triage case:", error);
-      alert("Error saving triage case. Please try again.");
+      console.error('Error saving triage:', error);
+      alert('Failed to save triage case. Please try again.');
     } finally {
       setSaving(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950">

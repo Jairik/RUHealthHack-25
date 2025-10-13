@@ -1,6 +1,6 @@
 # Lunara - Intelligent OB/GYN Triage System
 
-> 💡 *Announcement:*
+> 📢 *Announcement:*
 > Lunara **placed first** at RUHealthHacks, **winning** the Womens Health Category! 
 
 A web-based platform that empowers call center agents with AI-powered triage, improving the accuracy of connections 
@@ -16,30 +16,64 @@ to subspecialists by almost 20%.
   </a>
 </p>
 
-<!-- TODO
 ---
 
-## Features
-- Feature 1  
-- Feature 2  
-- Feature 3  
+## Inspiration
+
+Every day, women’s health call centers face overwhelming complexity — agents must sort through mountains of patient histories, symptoms, and sub-specialty decisions. Misrouted referrals delay care, especially for high-risk pregnancies and cancer patients.  
+We asked: **What if triage could be smarter, faster, and more accurate — from the very first call?**
 
 ---
--->
 
-## Tech Stack
+## What It Does
+**Lunara** is an **AI-powered triage assistant** built specifically for **women’s health**.  
+It empowers call center agents to make evidence-based referral decisions in **under 30 seconds**.
+
+Agents enter only minimal information (name, DOB, initial symptoms).  
+Lunara then:
+- Uses **Natural Language Processing (NLP)** to interpret patient-reported symptoms  
+- References **prior medical history** for contextual accuracy  
+- Generates a **ranked list of conditions, sub-specialties, and suitable doctors**  
+- Displays **confidence scores**, **top recommendations**, and a **summary card** for transparency  
+
+The result: faster, smarter, and more accurate triage — routing patients to the right provider the first time.
+
+## Impact
+
+- **25%** of women’s health calls are misrouted today — Lunara reduces this drastically.  
+- Cuts **average triage time** from minutes to **under 30 seconds**.  
+- Reduces **cost of care** and **wait times** for patients.  
+- Improves **safety** by ensuring high-risk cases reach the right specialists immediately.  
+
+---
+
+## How We Built It
 
 > *Note*: Our entire tech stack was developed with HIPAA compliance in mind!
 
-**Frontend:** React / RadixUI 
+**Tech Stack Overview**
 
-**Backend:** FastAPI / Python
+  -**Frontend:** React / RadixUI
+  
+  -**Backend:** FastAPI / Python
+  
+  -**ML/AI**: TF-IDF (NLP), SGD
+  
+  -**Database:** AWS Aurora Serverless v2 (Postgres Compatible)
+  
+  -**Hosting:** Local + Terraform scripts for using AWS Cognito (user auth), Lambda (hosting backend), & S3 with CloudFront (hosting frontend)  
 
-**ML/AI**: TF-IDF (NLP), SGD
 
-**Database:** AWS Aurora Serverless v2 (Postgres Compatible)  
+**Pipeline**
+1. Agents input minimal information via the frontend.  
+2. The backend processes the data and performs NLP-based symptom interpretation.  
+3. The ML model ranks likely conditions and corresponding sub-specialties.  
+4. Results, confidence scores, and doctor recommendations are sent back to the agent dashboard.  
+5. All triages are logged with algorithm version, timestamp, and confidence — ensuring **auditability and HIPAA compliance**.
 
-**Hosting:** Local + Terraform scripts for using AWS Cognito (user auth), Lambda (hosting backend), & S3 with CloudFront (hosting frontend)  
+**Admin Tools**
+- Modify or override mappings between symptoms and conditions  
+- Review logs and monitor model performance across 140 tracked conditions  
 
 ---
 
@@ -68,3 +102,4 @@ npm run devf
 ```
 
 *The command ```devf``` runs ```dev``` (frontend) and ```dev:backend``` (backend) concurrently*. To deploy in production, use terraform scripts under /infra*
+

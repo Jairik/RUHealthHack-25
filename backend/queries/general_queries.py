@@ -1,103 +1,90 @@
 # backend/queries/general_queries.py
 import json
 from typing import Any, Dict, List, Optional, Tuple
-from .table_creation.AWS_connect import get_rds_client, get_envs
+from backend.db import get_connection
 
-_rds = None
-_DB_CLUSTER_ARN = _DB_SECRET_ARN = _DB_NAME = None
+# ---------------- Helpers ----------------
 
-def _init():
-    global _rds, _DB_CLUSTER_ARN, _DB_SECRET_ARN, _DB_NAME
-    if _rds is None:
-        _rds = get_rds_client()
-        _DB_CLUSTER_ARN, _DB_SECRET_ARN, _DB_NAME = get_envs()
+def _exec_fetchone(sql: str, params: tuple = ()) -> Optional[Any]:
+    conn = get_connection()
+    try:
+        cur = conn.execute(sql, params)
+        row = cur.fetchone()
+        return row
+    finally:
+        conn.close()
 
-def _exec(sql: str, params: Optional[List[Dict[str, Any]]] = None):
-    _init()
-    return _rds.execute_statement(
-        resourceArn=_DB_CLUSTER_ARN,
-        secretArn=_DB_SECRET_ARN,
-        database=_DB_NAME,
-        sql=sql,
-        parameters=params or [],
-    )
+def _exec_fetchall(sql: str, params: tuple = ()) -> List[Any]:
+    conn = get_connection()
+    try:
+        cur = conn.execute(sql, params)
+        rows = cur.fetchall()
+        return rows
+    finally:
+        conn.close()
 
-def _fetch_one_id(res) -> Optional[int]:
-    recs = res.get("records") or []
-    if not recs:
-        return None
-    cell = recs[0][0]
-    return cell.get("longValue") or int(cell.get("stringValue"))
+def _exec_insert(sql: str, params: tuple = ()) -> int:
+    conn = get_connection()
+    try:
+        cur = conn.execute(sql, params)
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+def _exec_autocommit(sql: str, params: tuple = ()) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(sql, params)
+        conn.commit()
+    finally:
+        conn.close()
 
 # ---------------- Clients ----------------
 
 def q_get_or_create_client(first_name: str, last_name: str, dob_iso: str) -> int:
-    sel = _exec(
-        "SELECT client_id FROM client WHERE client_fn = :fn AND client_ln = :ln AND client_dob = :dob::DATE LIMIT 1;",
-        [
-            {"name": "fn", "value": {"stringValue": first_name}},
-            {"name": "ln", "value": {"stringValue": last_name}},
-            {"name": "dob", "value": {"stringValue": dob_iso}},  # YYYY-MM-DD
-        ],
+    row = _exec_fetchone(
+        "SELECT client_id FROM client WHERE client_fn = ? AND client_ln = ? AND client_dob = ? LIMIT 1;",
+        (first_name, last_name, dob_iso)
     )
-    cid = _fetch_one_id(sel)
-    if cid:
-        return cid
+    if row:
+        return row['client_id']
 
-    ins = _exec(
-        "INSERT INTO client (client_fn, client_ln, client_dob) VALUES (:fn, :ln, :dob::DATE) RETURNING client_id;",
-        [
-            {"name": "fn", "value": {"stringValue": first_name}},
-            {"name": "ln", "value": {"stringValue": last_name}},
-            {"name": "dob", "value": {"stringValue": dob_iso}},
-        ],
+    return _exec_insert(
+        "INSERT INTO client (client_fn, client_ln, client_dob) VALUES (?, ?, ?);",
+        (first_name, last_name, dob_iso)
     )
-    return _fetch_one_id(ins)
 
 # ---------------- Triage header ----------------
 
 def q_start_triage(agent_id: int, client_id: int, timestamp: Optional[str] = None) -> int:
-    # If timestamp provided from frontend, use it; otherwise use server time
+    # If timestamp provided from frontend, use it; otherwise use server time (CURRENT_TIMESTAMP in default)
     if timestamp:
-        res = _exec(
+        return _exec_insert(
             """
             INSERT INTO triage (agent_id, client_id, date_time, sent_to_epic)
-            VALUES (:aid, :cid, :ts::TIMESTAMP, FALSE)
-            RETURNING triage_id;
+            VALUES (?, ?, ?, 0);
             """,
-            [
-                {"name": "aid", "value": {"longValue": int(agent_id)}},
-                {"name": "cid", "value": {"longValue": int(client_id)}},
-                {"name": "ts", "value": {"stringValue": timestamp}},
-            ],
+            (int(agent_id), int(client_id), timestamp)
         )
     else:
-        res = _exec(
+        return _exec_insert(
             """
-            INSERT INTO triage (agent_id, client_id, date_time, sent_to_epic)
-            VALUES (:aid, :cid, NOW(), FALSE)
-            RETURNING triage_id;
+            INSERT INTO triage (agent_id, client_id, sent_to_epic)
+            VALUES (?, ?, 0);
             """,
-            [
-                {"name": "aid", "value": {"longValue": int(agent_id)}},
-                {"name": "cid", "value": {"longValue": int(client_id)}},
-            ],
+            (int(agent_id), int(client_id))
         )
-    return _fetch_one_id(res)
 
 # ---------------- Q/A log ----------------
 
 def q_insert_triage_question(triage_id: int, question: str, answer: str) -> None:
-    _exec(
+    _exec_autocommit(
         """
         INSERT INTO triage_question (triage_id, triage_question, triage_answer)
-        VALUES (:tid, :q, :a);
+        VALUES (?, ?, ?);
         """,
-        [
-            {"name": "tid", "value": {"longValue": triage_id}},
-            {"name": "q", "value": {"stringValue": question[:256]}},
-            {"name": "a", "value": {"stringValue": answer[:1024]}},
-        ],
+        (triage_id, question[:256], answer[:1024])
     )
 
 # ---------------- Doctors ----------------
@@ -115,24 +102,17 @@ def q_get_or_create_doctor_by_name(full_name: str) -> Optional[int]:
     fn, ln = _parse_doctor_name(full_name)
     if not ln:
         return None
-    sel = _exec(
-        "SELECT doc_id FROM doctor WHERE doc_fn = :fn AND doc_ln = :ln LIMIT 1;",
-        [
-            {"name": "fn", "value": {"stringValue": fn}},
-            {"name": "ln", "value": {"stringValue": ln}},
-        ],
+    row = _exec_fetchone(
+        "SELECT doc_id FROM doctor WHERE doc_fn = ? AND doc_ln = ? LIMIT 1;",
+        (fn, ln)
     )
-    did = _fetch_one_id(sel)
-    if did:
-        return did
-    ins = _exec(
-        "INSERT INTO doctor (doc_fn, doc_ln) VALUES (:fn, :ln) RETURNING doc_id;",
-        [
-            {"name": "fn", "value": {"stringValue": fn}},
-            {"name": "ln", "value": {"stringValue": ln}},
-        ],
+    if row:
+        return row['doc_id']
+
+    return _exec_insert(
+        "INSERT INTO doctor (doc_fn, doc_ln) VALUES (?, ?);",
+        (fn, ln)
     )
-    return _fetch_one_id(ins)
 
 def q_doctor_names_by_ids(ids: List[int]) -> List[str]:
     out: List[str] = []
@@ -140,16 +120,15 @@ def q_doctor_names_by_ids(ids: List[int]) -> List[str]:
         if not did:
             out.append("")
             continue
-        res = _exec(
-            "SELECT doc_fn, doc_ln FROM doctor WHERE doc_id = :id;",
-            [{"name": "id", "value": {"longValue": did}}],
+        row = _exec_fetchone(
+            "SELECT doc_fn, doc_ln FROM doctor WHERE doc_id = ?;",
+            (did,)
         )
-        recs = res.get("records") or []
-        if not recs:
+        if not row:
             out.append("")
             continue
-        fn = recs[0][0].get("stringValue") or ""
-        ln = recs[0][1].get("stringValue") or ""
+        fn = row['doc_fn'] or ""
+        ln = row['doc_ln'] or ""
         nm = f"{fn} {ln}".strip()
         out.append(nm)
     return out
@@ -218,35 +197,34 @@ def q_update_triage_from_inference(
     # subspecialist confidences -> columns
     conf = _subs_to_conf_columns(subs or [])
 
+    # Build update statement dynamically
     set_parts = []
-    params: List[Dict[str, Any]] = [{"name": "tid", "value": {"longValue": triage_id}}]
-
+    params = []
+    
     for col, val in conf.items():
-        set_parts.append(f"{col} = :{col}")
-        params.append({"name": col, "value": {"longValue": int(val)}})
+        set_parts.append(f"{col} = ?")
+        params.append(int(val))
 
     if doc1 is not None:
-        set_parts.append("doc_id1 = :d1")
-        params.append({"name": "d1", "value": {"longValue": int(doc1)}})
+        set_parts.append("doc_id1 = ?")
+        params.append(int(doc1))
     if doc2 is not None:
-        set_parts.append("doc_id2 = :d2")
-        params.append({"name": "d2", "value": {"longValue": int(doc2)}})
+        set_parts.append("doc_id2 = ?")
+        params.append(int(doc2))
     if doc3 is not None:
-        set_parts.append("doc_id3 = :d3")
-        params.append({"name": "d3", "value": {"longValue": int(doc3)}})
+        set_parts.append("doc_id3 = ?")
+        params.append(int(doc3))
 
     if set_parts:
-        _exec(f"UPDATE triage SET {', '.join(set_parts)} WHERE triage_id = :tid;", params)
+        params.append(triage_id)
+        _exec_autocommit(f"UPDATE triage SET {', '.join(set_parts)} WHERE triage_id = ?;", tuple(params))
 
     return subs or [], conds or [], doc_list
 
 # ---------------- End triage ----------------
 
 def q_end_triage(triage_id: int, agent_notes: Optional[str]) -> None:
-    _exec(
-        "UPDATE triage SET agent_notes = :n WHERE triage_id = :tid;",
-        [
-            {"name": "n", "value": {"stringValue": (agent_notes or "")[:65535]}},
-            {"name": "tid", "value": {"longValue": triage_id}},
-        ],
+    _exec_autocommit(
+        "UPDATE triage SET agent_notes = ? WHERE triage_id = ?;",
+        ((agent_notes or "")[:65535], triage_id)
     )

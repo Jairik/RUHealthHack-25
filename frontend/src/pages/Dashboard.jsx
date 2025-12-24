@@ -4,9 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DoctorAvailabilityModal from "../components/dashboard/DoctorAvailabilityModal";
-import { 
-  FileText, TrendingUp, Users, Calendar, 
-  Search, ChevronDown, ChevronUp, Sparkles, Send, CheckCircle2, Loader2 
+import {
+  FileText, TrendingUp, Users, Calendar,
+  Search, ChevronDown, ChevronUp, Sparkles, Send, CheckCircle2, Loader2, Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -100,6 +100,22 @@ export default function Dashboard() {
       alert("Error sending to Epic. Please try again.");
     } finally {
       setSendingToEpic(null);
+    }
+  };
+
+  const handleDelete = async (triageData) => {
+    if (!window.confirm("Are you sure you want to delete this triage case? This cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/triages/${triageData.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Delete failed");
+
+      setTriageCases(prev => prev.filter(c => c.id !== triageData.id));
+    } catch (error) {
+      console.error("Error deleting case:", error);
+      alert("Failed to delete case");
     }
   };
 
@@ -272,11 +288,10 @@ export default function Dashboard() {
                           <Button
                             onClick={() => handleSendToEpic(case_)}
                             disabled={case_.sent_to_epic || sendingToEpic === case_.id}
-                            className={`${
-                              case_.sent_to_epic
-                                ? 'bg-green-600 dark:bg-green-700'
-                                : 'bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 hover:from-indigo-700 hover:to-purple-700'
-                            } text-white font-bold`}
+                            className={`${case_.sent_to_epic
+                              ? 'bg-green-600 dark:bg-green-700'
+                              : 'bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 hover:from-indigo-700 hover:to-purple-700'
+                              } text-white font-bold`}
                           >
                             {sendingToEpic === case_.id ? (
                               <>
@@ -296,6 +311,14 @@ export default function Dashboard() {
                             )}
                           </Button>
                           <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDelete(case_)}
+                            className="bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 border border-red-200 dark:border-red-800"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </Button>
+                          <Button
                             variant="ghost"
                             onClick={() => setExpandedCase(expandedCase === case_.id ? null : case_.id)}
                             className="text-indigo-600 dark:text-purple-400"
@@ -309,7 +332,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </CardHeader>
-                    
+
                     <CardContent>
                       {/* Summary */}
                       <div className="grid md:grid-cols-2 gap-6 mb-4">
@@ -322,7 +345,7 @@ export default function Dashboard() {
                             {case_.final_recommendation}
                           </p>
                         </div>
-                        
+
                         <div className="p-4 bg-purple-100 dark:bg-pink-900/30 rounded-xl border-2 border-purple-300 dark:border-pink-700">
                           <p className="text-sm font-bold text-purple-600 dark:text-pink-400 mb-2">
                             <Users className="w-3 h-3 inline mr-1" />
@@ -426,8 +449,8 @@ export default function Dashboard() {
                                 <div className="grid md:grid-cols-2 gap-3">
                                   {/* MOCK DATA - Doctor matches */}
                                   {[
-                                    { 
-                                      name: case_.recommended_doctor.replace("Dr. ", ""), 
+                                    {
+                                      name: case_.recommended_doctor.replace("Dr. ", ""),
                                       specialty: case_.final_recommendation,
                                       availability: "Available",
                                       credentials: "MD, FACOG"
@@ -452,11 +475,10 @@ export default function Dashboard() {
                                     >
                                       <div className="flex items-start justify-between mb-2">
                                         <div>
-                                          <Badge className={`${
-                                            docIdx === 0
-                                              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
-                                              : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
-                                          } font-black mb-2`}>
+                                          <Badge className={`${docIdx === 0
+                                            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                            : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
+                                            } font-black mb-2`}>
                                             {docIdx === 0 ? "Best Match ⭐" : docIdx === 1 ? "Top Match" : "Second Match"}
                                           </Badge>
                                           <p className="text-lg font-black text-indigo-900 dark:text-pink-100">

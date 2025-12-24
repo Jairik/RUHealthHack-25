@@ -1,117 +1,120 @@
 from typing import List, Optional, Tuple, Dict, Any
-from .table_creation.AWS_connect import get_rds_client, get_envs
-
-_rds = get_rds_client()
-_DB_CLUSTER_ARN, _DB_SECRET_ARN, _DB_NAME = get_envs()
-
-def _execute_sql(sql: str) -> dict:
-    response = _rds.execute_statement(
-        resourceArn=_DB_CLUSTER_ARN,
-        secretArn=_DB_SECRET_ARN,
-        database=_DB_NAME,
-        sql=sql,
-        includeResultMetadata=True,   # ← add this
-    )
-    return response
-
-def _execute_sql_params(sql: str, parameters: list) -> dict:
-    response = _rds.execute_statement(
-        resourceArn=_DB_CLUSTER_ARN,
-        secretArn=_DB_SECRET_ARN,
-        database=_DB_NAME,
-        sql=sql,
-        parameters=parameters,
-        includeResultMetadata=True,   # ← add this too
-    )
-    return response
-
-def _rows_to_dicts(resp) -> List[Dict[str, Any]]:
-	"""Convert RDS Data API response rows to list of dictionaries."""
-	if not resp:
-		return []
-	column_names = [col['name'] for col in resp['columnMetadata']]
-	result = []
-	for row in resp['records']:
-		row_dict = {}
-		for col_name, col_value in zip(column_names, row):
-			if 'stringValue' in col_value:
-				row_dict[col_name] = col_value['stringValue']
-			elif 'longValue' in col_value:
-				row_dict[col_name] = col_value['longValue']
-			elif 'doubleValue' in col_value:
-				row_dict[col_name] = col_value['doubleValue']
-			elif 'booleanValue' in col_value:
-				row_dict[col_name] = col_value['booleanValue']
-			elif 'isNull' in col_value and col_value['isNull']:
-				row_dict[col_name] = None
-			else:
-				row_dict[col_name] = None
-		result.append(row_dict)
-	return result
+from backend.db import get_connection
 
 TZ = 'America/New_York'
 SPECIALTY_COLS = [
-	("Minimally Invasive Surgery", "mis_conf"),
-	("General OB/GYN", "gob_conf"),
-	("Reproductive Endocrinology", "re_conf"),
-	("Urogynecology", "uro_conf"),
-	("Gynecologic Oncology", "go_conf"),
-	("Maternal-Fetal Medicine", "mfm_conf")
+    ("Minimally Invasive Surgery", "mis_conf"),
+    ("General OB/GYN", "gob_conf"),
+    ("Reproductive Endocrinology", "re_conf"),
+    ("Urogynecology", "uro_conf"),
+    ("Gynecologic Oncology", "go_conf"),
+    ("Maternal-Fetal Medicine", "mfm_conf")
 ]
 
+def _execute_scalar(sql: str, params: tuple = ()) -> int:
+    conn = get_connection()
+    try:
+        cur = conn.execute(sql, params)
+        row = cur.fetchone()
+        return row[0] if row else 0
+    finally:
+        conn.close()
+
+def q_delete_triage(triage_id: int) -> bool:
+    conn = get_connection()
+    try:
+        # Cascade delete manually since foreign keys might not cascade automatically depending on PRAGMA
+        conn.execute("DELETE FROM triage_question WHERE triage_id = ?", (triage_id,))
+        cur = conn.execute("DELETE FROM triage WHERE triage_id = ?", (triage_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    except Exception as e:
+        print(f"Error deleting triage {triage_id}: {e}")
+        return False
+    finally:
+        conn.close()
+
+def _execute_query(sql: str, params: tuple = ()) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cur = conn.execute(sql, params)
+        rows = cur.fetchall()
+        # sqlite3.Row objects can be converted to dict
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+def q_delete_triage(triage_id: int) -> bool:
+    conn = get_connection()
+    try:
+        # Cascade delete manually since foreign keys might not cascade automatically depending on PRAGMA
+        conn.execute("DELETE FROM triage_question WHERE triage_id = ?", (triage_id,))
+        cur = conn.execute("DELETE FROM triage WHERE triage_id = ?", (triage_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    except Exception as e:
+        print(f"Error deleting triage {triage_id}: {e}")
+        return False
+    finally:
+        conn.close()
+
 def q_total_triages() -> int:
-	res = _execute_sql("SELECT COUNT(*) AS total FROM triage;")
-	return int(res["records"][0][0]["longValue"])
+    return _execute_scalar("SELECT COUNT(*) FROM triage;")
 
 def q_cases_today(tz: str = TZ) -> int:
+    # SQLite 'date("now", "localtime")' is approximate for "server local time".
+    # For a hackathon project, using 'now', 'localtime' is usually sufficient.
+    # Otherwise we'd need to pass python datetime objects.
+    # Let's simple check matching dates in strings.
     sql = """
-    SELECT COUNT(*) AS cnt
-    FROM triage
-    WHERE (date_time AT TIME ZONE :tz)::date = (now() AT TIME ZONE :tz)::date;
+    SELECT COUNT(*) 
+    FROM triage 
+    WHERE date(date_time, 'localtime') = date('now', 'localtime');
     """
-    res = _execute_sql_params(sql, [{"name":"tz","value":{"stringValue":tz}}])
-    return int(res["records"][0][0]["longValue"])
+    return _execute_scalar(sql)
 
 def q_cases_this_week(tz: str = TZ) -> int:
+    # 'weekday 0' is Sunday in some systems, Monday in others. SQLite modifier 'weekday 0' advances to next Sunday.
+    # We want current week. 
+    # date('now', 'localtime', 'weekday 0', '-7 days') gives start of week (Sunday-based).
     sql = """
-    WITH now_local AS (SELECT (now() AT TIME ZONE :tz) AS n)
-    SELECT COUNT(*) AS cnt
-    FROM triage, now_local
-    WHERE (date_time AT TIME ZONE :tz)::date >= (date_trunc('week', n)::date)
-      AND (date_time AT TIME ZONE :tz)::date <= (n)::date;
+    SELECT COUNT(*)
+    FROM triage
+    WHERE date(date_time, 'localtime') >= date('now', 'localtime', 'weekday 0', '-7 days');
     """
-    res = _execute_sql_params(sql, [{"name":"tz","value":{"stringValue":tz}}])
-    return int(res["records"][0][0]["longValue"])
+    return _execute_scalar(sql)
 
 def q_search_triages(term: Optional[str], page: int = 1, page_size: int = 20) -> Dict[str, Any]:
     term = (term or "").strip()
-    offset = (max(page,1)-1) * page_size
+    offset = (max(page, 1) - 1) * page_size
 
-    where = []
-    params = [
-        {"name":"limit","value":{"longValue":page_size}},
-        {"name":"offset","value":{"longValue":offset}},
-    ]
+    where_clauses = []
+    params = []
+
     if term:
-        where.append("""
+        # SQLite uses LIKE not ILIKE, but standard ASCII chars are usually case-insensitive in LIKE by default in SQLite?
+        # Actually it's PRAGMA case_sensitive_like=OFF by default.
+        where_clauses.append("""
         (
-          c.client_fn ILIKE :q OR
-          c.client_ln ILIKE :q OR
-          t.agent_id::text ILIKE :q OR
-          ('TRG-' || lpad(t.triage_id::text, 3, '0')) ILIKE :q
+          c.client_fn LIKE ? OR
+          c.client_ln LIKE ? OR
+          t.agent_id LIKE ? OR
+          ('TRG-' || printf('%03d', t.triage_id)) LIKE ?
         )
         """)
-        params.append({"name":"q","value":{"stringValue":f"%{term}%"}})
-    where_sql = "WHERE " + " AND ".join(where) if where else ""
+        p = f"%{term}%"
+        params.extend([p, p, p, p])
 
+    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+    # Main query
     sql = f"""
-    WITH base AS (
       SELECT
         t.triage_id, t.agent_id, t.client_id, t.date_time,
         t.re_conf, t.mfm_conf, t.uro_conf, t.gob_conf, t.mis_conf, t.go_conf,
         t.doc_id1, t.doc_id2, t.doc_id3,
         t.agent_notes,
-        COALESCE(t.sent_to_epic, false) AS sent_to_epic,
+        COALESCE(t.sent_to_epic, 0) AS sent_to_epic,
         t.epic_sent_date,
         c.client_fn, c.client_ln, c.client_dob,
         d1.doc_fn AS doc1_fn, d1.doc_ln AS doc1_ln
@@ -120,12 +123,11 @@ def q_search_triages(term: Optional[str], page: int = 1, page_size: int = 20) ->
       LEFT JOIN doctor d1 ON d1.doc_id = t.doc_id1
       {where_sql}
       ORDER BY t.triage_id DESC
-      LIMIT :limit OFFSET :offset
-    )
-    SELECT * FROM base;
+      LIMIT ? OFFSET ?
     """
-    res = _execute_sql_params(sql, params)
-    rows = _rows_to_dicts(res)
+    query_params = tuple(params + [page_size, offset])
+    
+    rows = _execute_query(sql, query_params)
 
     items = []
     for r in rows:
@@ -160,18 +162,19 @@ def q_search_triages(term: Optional[str], page: int = 1, page_size: int = 20) ->
             "subspecialist_confidences": spec_vals,
             "status": "completed",
             "agent_notes": r.get("agent_notes"),
-            "sent_to_epic": bool(r.get("sent_to_epic", False)),
+            "sent_to_epic": bool(r.get("sent_to_epic", 0)),
             "epic_sent_date": str(r["epic_sent_date"]) if r.get("epic_sent_date") else None
         })
 
+    # Count totals
     count_sql = f"""
-      SELECT COUNT(*) AS cnt
+      SELECT COUNT(*)
       FROM triage t
       JOIN client c ON c.client_id = t.client_id
       {where_sql};
     """
-    count_res = _execute_sql_params(count_sql, [p for p in params if p["name"] == "q"])
-    total = int(count_res["records"][0][0]["longValue"]) if count_res.get("records") else 0
+    count_params = tuple(params)
+    total = _execute_scalar(count_sql, count_params)
 
     return {
         "items": items,
@@ -184,10 +187,16 @@ def q_search_triages(term: Optional[str], page: int = 1, page_size: int = 20) ->
 def q_mark_sent_to_epic(triage_id: int):
     sql = """
     UPDATE triage
-    SET sent_to_epic = TRUE, epic_sent_date = now()
-    WHERE triage_id = :tid
+    SET sent_to_epic = 1, epic_sent_date = CURRENT_TIMESTAMP
+    WHERE triage_id = ?
     RETURNING triage_id, sent_to_epic, epic_sent_date;
     """
-    res = _execute_sql_params(sql, [{"name":"tid","value":{"longValue":triage_id}}])
-    rows = _rows_to_dicts(res)
-    return rows[0] if rows else None
+    # SQLite returns cursor from execute.
+    conn = get_connection()
+    try:
+        cur = conn.execute(sql, (triage_id,))
+        conn.commit()
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()

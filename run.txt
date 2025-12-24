@@ -1,0 +1,15 @@
+notes for running test build:
+
+backend:
+1. pip install -r requirements.txt
+2. python -m uvicorn app:app
+
+frontend:
+1. npm install
+2. npm run dev
+
+note: run backend and frontend in separate terminal windows
+another note: i redid the database schema to work with SQLite instead of AWS Aurora (for demo purposes)
+third note: i added the ability to remove a triage case from the dashboard, this is conveneient for testing and real-world use
+
+- anuj 

@@ -17,12 +17,22 @@ from backend.queries.dashboard_query import (
     q_cases_today,
     q_cases_this_week,
     q_search_triages,
-    q_mark_sent_to_epic,  # not used here but keep import for other pages
+    q_search_triages,
+    q_mark_sent_to_epic,
+    q_delete_triage,
 )
 
 # ---------------- App & CORS ----------------
 
+from backend.db import init_db
+
+# ---------------- App & CORS ----------------
+
 app = FastAPI()
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -207,7 +217,20 @@ def list_triages(
             "total_pages": (total + page_size - 1) // page_size,
         }
 
-    return {"items": [], "page": page, "page_size": page_size, "total": 0, "total_pages": 0}
+    return {
+        "items": items,
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": (total + page_size - 1) // page_size,
+    }
+
+@app.delete("/api/triages/{triage_id}")
+def delete_triage(triage_id: int):
+    success = q_delete_triage(triage_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Triage case not found or could not be deleted")
+    return {"ok": True, "deleted_id": triage_id}
 
 # ---------------- Triage lifecycle ----------------
 

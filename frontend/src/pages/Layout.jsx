@@ -33,8 +33,8 @@ export default function Layout({ children, currentPageName }) {
 
   const navItems = [
     { name: "Home", path: "Home", icon: Home },
-    { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
     { name: "Triage", path: "AgentTriage", icon: Activity },
+    { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
     { name: "Admin Controls", path: "AdminRules", icon: Key },
     { name: "Validation", path: "ModelValidation", icon: ClipboardCheck },
 

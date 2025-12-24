@@ -1,214 +1,233 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Papa from 'papaparse';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Key,
+    Lock,
+    Unlock,
+    Save,
+    Search,
+    Filter,
+    AlertCircle,
+    CheckCircle2,
+    Loader2
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Assume symptoms.csv is in the 'public' folder for client-side loading
-const CSV_FILE_PATH = '/symptoms.csv'; 
+const CSV_FILE_PATH = '/symptoms.csv';
 
-// --- 1. DARK MODE DETECTION HOOK ---
-// This hook checks for the presence of the 'dark' class on the document root,
-// assuming Tailwind is managing the theme globally.
-const useThemeDetector = () => {
-    // Check if the HTML element currently has the 'dark' class
-    const isDark = window.document.documentElement.classList.contains('dark');
-    const [isDarkTheme, setIsDarkTheme] = useState(isDark);
+// --- Helper Functions (Theme Consistent) ---
 
-    useEffect(() => {
-        // Observer to listen for changes to the 'class' attribute on the HTML element
-        const observer = new MutationObserver((mutationsList) => {
-            for (const mutation of mutationsList) {
-                if (mutation.attributeName === 'class') {
-                    setIsDarkTheme(document.documentElement.classList.contains('dark'));
-                    return;
-                }
-            }
-        });
-
-        // Start observing the HTML element for attribute changes
-        observer.observe(document.documentElement, { attributes: true });
-
-        // Initial check and cleanup
-        setIsDarkTheme(document.documentElement.classList.contains('dark'));
-        return () => observer.disconnect();
-    }, []);
-
-    return isDarkTheme;
-};
-
-// --- Helper Functions (Dynamic) ---
-
-const getPriorityColor = (priority, isDark) => {
+const getPriorityBadgeVariant = (priority) => {
     switch (priority) {
         case 'CRITICAL':
-            return { color: 'white', backgroundColor: '#dc3545', fontWeight: 'bold' };
+            return "destructive"; // Red
         case 'URGENT':
-            // Adjust yellow for better contrast in dark mode
-            return { color: isDark ? '#111' : '#212529', backgroundColor: isDark ? '#ffcd56' : '#ffc107', fontWeight: 'bold' };
+            return "warning"; // We might need to manually style this if 'warning' variant doesn't exist, usually yellow/orange
         case 'ELEVATED':
-            return { color: isDark ? '#ccc' : '#212529', backgroundColor: isDark ? '#007bff40' : '#007bff20' };
+            return "secondary"; // Blue/Greyish
         case 'STANDARD':
-            return { color: isDark ? '#ccc' : '#212529', backgroundColor: isDark ? '#3a3a3a' : '#f8f9fa' };
+            return "outline";
         default:
-            return {};
+            return "secondary";
     }
 };
 
-const getSubspecialtyColor = (subspecialty, isDark) => {
-    if (isDark) {
-        // Darker, subdued colors for card backgrounds
-        switch (subspecialty) {
-            case 'OB/GYN': return '#1a2b33';
-            case 'GYNONC': return '#331a20';
-            case 'UROGYN': return '#1a332d';
-            case 'MIS': return '#33301a';
-            case 'MFM': return '#2c1a33';
-            case 'REI': return '#1a331a';
-            default: return '#212121';
-        }
+const getPriorityColorClasses = (priority) => {
+    switch (priority) {
+        case 'CRITICAL':
+            return "bg-red-500 hover:bg-red-600 text-white border-red-600";
+        case 'URGENT':
+            return "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500";
+        case 'ELEVATED':
+            return "bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-800";
+        case 'STANDARD':
+            return "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700";
+        default:
+            return "bg-slate-100 text-slate-800";
     }
-    // Light Mode (Original Colors)
+}
+
+const getSubspecialtyColorClasses = (subspecialty) => {
     switch (subspecialty) {
-        case 'OB/GYN': return '#e6f7ff';
-        case 'GYNONC': return '#fff0f6';
-        case 'UROGYN': return '#eafff7';
-        case 'MIS': return '#fffbe6';
-        case 'MFM': return '#f6e5ff';
-        case 'REI': return '#e8f7e8';
-        default: return '#f8f9fa';
+        case 'OB/GYN': return "bg-sky-50 dark:bg-sky-950/30 border-sky-100 dark:border-sky-900";
+        case 'GYNONC': return "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900";
+        case 'UROGYN': return "bg-teal-50 dark:bg-teal-950/30 border-teal-100 dark:border-teal-900";
+        case 'MIS': return "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900";
+        case 'MFM': return "bg-purple-50 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900";
+        case 'REI': return "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900";
+        default: return "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800";
     }
 };
 
 // --- Component to Configure a Single Rule (RuleCard) ---
-const RuleCard = ({ rule, index, onRuleChange, isReadOnly, isDark }) => {
+const RuleCard = ({ rule, index, onRuleChange, isReadOnly }) => {
     const PRIORITY_OPTIONS = ['CRITICAL', 'URGENT', 'ELEVATED', 'STANDARD'];
     const SUBSPECIALTY_OPTIONS = ['OB/GYN', 'GYNONC', 'UROGYN', 'MIS', 'MFM', 'REI'];
-    
-    const currentSubspecialty = rule.subspecialty || rule.division; 
+
+    const currentSubspecialty = rule.subspecialty || rule.division;
 
     const handleSubspecialtyChange = (value) => {
         onRuleChange(index, 'subspecialty', value);
     };
 
-    const cardStyleWithColor = {
-        ...getDynamicStyle('ruleCardStyle', isDark),
-        backgroundColor: getSubspecialtyColor(currentSubspecialty, isDark),
-        color: isDark ? '#eee' : getDynamicStyle('ruleCardStyle', isDark).color,
-    };
-    
-    const inputDisabledStyle = { 
-        ...getDynamicStyle('inputStyle', isDark), 
-        // Disabled background color logic
-        backgroundColor: isReadOnly ? (isDark ? '#333' : '#e9ecef') : (isDark ? '#2a2a2a' : 'white'),
-        color: isDark ? '#eee' : getDynamicStyle('inputStyle', isDark).color,
-    };
-
-    const selectStyleWithColor = {
-        ...getDynamicStyle('selectStyle', isDark),
-        border: isReadOnly ? getDynamicStyle('selectStyle', isDark).border : `2px solid ${getSubspecialtyColor(currentSubspecialty, isDark)}`,
-        backgroundColor: isReadOnly ? (isDark ? '#333' : '#e9ecef') : (isDark ? '#2a2a2a' : 'white'),
-        color: isDark ? '#eee' : getDynamicStyle('selectStyle', isDark).color,
-    };
+    const colorClass = getSubspecialtyColorClasses(currentSubspecialty);
 
     return (
-        <div style={cardStyleWithColor}>
-            <div style={getDynamicStyle('ruleHeaderStyle', isDark)}>
-                <strong>{rule.condition}</strong>
-                <span style={{...getDynamicStyle('priorityBadgeStyle', isDark), ...getPriorityColor(rule.scheduling_priority, isDark)}}>
-                    {rule.scheduling_priority}
-                </span>
-            </div>
+        <Card className={`border-2 shadow-sm hover:shadow-md transition-shadow ${colorClass}`}>
+            <CardHeader className="pb-3 border-b border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 space-y-0">
+                <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-lg font-bold leading-tight break-words text-slate-800 dark:text-slate-100">
+                        {rule.condition}
+                    </CardTitle>
+                    <Badge className={`${getPriorityColorClasses(rule.scheduling_priority)} border px-2 py-0.5 whitespace-nowrap`}>
+                        {rule.scheduling_priority}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
 
-            <div style={getDynamicStyle('inputGroupStyle', isDark)}>
-                <label style={getDynamicStyle('labelStyle', isDark)}>Subspecialty Routing:</label>
-                <select
-                    value={currentSubspecialty}
-                    onChange={(e) => handleSubspecialtyChange(e.target.value)}
-                    style={selectStyleWithColor}
-                    disabled={isReadOnly}
-                >
-                    {SUBSPECIALTY_OPTIONS.map(s => (
-                        <option key={s} value={s}>{s}</option>
-                    ))}
-                </select>
-            </div>
-            
-            <div style={getDynamicStyle('inputGroupStyle', isDark)}>
-                <label style={getDynamicStyle('labelStyle', isDark)}>Scheduling Priority:</label>
-                <select
-                    value={rule.scheduling_priority}
-                    onChange={(e) => onRuleChange(index, 'scheduling_priority', e.target.value)}
-                    style={selectStyleWithColor}
-                    disabled={isReadOnly}
-                >
-                    {PRIORITY_OPTIONS.map(p => (
-                        <option key={p} value={p}>{p}</option>
-                    ))}
-                </select>
-            </div>
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Subspecialty Routing
+                    </label>
+                    <Select
+                        value={currentSubspecialty}
+                        onValueChange={handleSubspecialtyChange}
+                        disabled={isReadOnly}
+                    >
+                        <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700">
+                            <SelectValue placeholder="Select Subspecialty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {SUBSPECIALTY_OPTIONS.map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
 
-            <div style={getDynamicStyle('inputGroupStyle', isDark)}>
-                <label style={getDynamicStyle('labelStyle', isDark)}>Scheduling Timeframe:</label>
-                <input
-                    type="text"
-                    value={rule.scheduling_timeframe}
-                    onChange={(e) => onRuleChange(index, 'scheduling_timeframe', e.target.value)}
-                    style={inputDisabledStyle}
-                    readOnly={isReadOnly}
-                />
-            </div>
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Scheduling Priority
+                    </label>
+                    <Select
+                        value={rule.scheduling_priority}
+                        onValueChange={(val) => onRuleChange(index, 'scheduling_priority', val)}
+                        disabled={isReadOnly}
+                    >
+                        <SelectTrigger className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700">
+                            <SelectValue placeholder="Select Priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PRIORITY_OPTIONS.map(p => (
+                                <SelectItem key={p} value={p}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${p === 'CRITICAL' ? 'bg-red-500' : p === 'URGENT' ? 'bg-amber-500' : p === 'ELEVATED' ? 'bg-blue-500' : 'bg-slate-400'}`} />
+                                        {p}
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
 
-            <div style={getDynamicStyle('inputGroupStyle', isDark)}>
-                <label style={getDynamicStyle('labelStyle', isDark)}>Keywords (Editable):</label>
-                <textarea
-                    value={rule.keywords}
-                    onChange={(e) => onRuleChange(index, 'keywords', e.target.value)}
-                    style={{ ...inputDisabledStyle, ...getDynamicStyle('textareaStyle', isDark) }}
-                    readOnly={isReadOnly}
-                />
-            </div>
-        </div>
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Scheduling Timeframe
+                    </label>
+                    <Input
+                        type="text"
+                        value={rule.scheduling_timeframe}
+                        onChange={(e) => onRuleChange(index, 'scheduling_timeframe', e.target.value)}
+                        readOnly={isReadOnly}
+                        className="bg-white dark:bg-slate-950"
+                    />
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Keywords (Editable)
+                    </label>
+                    <Textarea
+                        value={rule.keywords}
+                        onChange={(e) => onRuleChange(index, 'keywords', e.target.value)}
+                        readOnly={isReadOnly}
+                        className="bg-white dark:bg-slate-950 min-h-[80px]"
+                    />
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 
 // --- Filter/Search Bar Component ---
-const FilterBar = ({ subspecialtyFilter, searchText, onSubspecialtyChange, onSearchTextChange, isDark }) => {
+const FilterBar = ({ subspecialtyFilter, searchText, onSubspecialtyChange, onSearchTextChange }) => {
     const SUBSPECIALTY_OPTIONS = ['All', 'OB/GYN', 'GYNONC', 'UROGYN', 'MIS', 'MFM', 'REI'];
 
     return (
-        <div style={getDynamicStyle('filterBarStyle', isDark)}>
-            {/* Subspecialty Filter Dropdown */}
-            <div style={{ flex: 1, minWidth: '200px', marginRight: '20px' }}>
-                <label style={getDynamicStyle('labelStyle', isDark)}>Filter by Subspecialty:</label>
-                <select
-                    value={subspecialtyFilter}
-                    onChange={(e) => onSubspecialtyChange(e.target.value)}
-                    style={getDynamicStyle('selectStyle', isDark)}
-                >
-                    {SUBSPECIALTY_OPTIONS.map(s => (
-                        <option key={s} value={s}>{s === 'All' ? 'View All Subspecialties' : s}</option>
-                    ))}
-                </select>
-            </div>
-            
-            {/* Free Text Search */}
-            <div style={{ flex: 2, minWidth: '300px' }}>
-                <label style={getDynamicStyle('labelStyle', isDark)}>Search Condition or Keywords:</label>
-                <input
-                    type="text"
-                    placeholder="e.g., Pap Smear, Fibroid, Infertility"
-                    value={searchText}
-                    onChange={(e) => onSearchTextChange(e.target.value)}
-                    style={getDynamicStyle('inputStyle', isDark)}
-                />
-            </div>
-        </div>
+        <Card className="border-3 border-indigo-200 dark:border-purple-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm mb-8">
+            <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                    {/* Subspecialty Filter Dropdown */}
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-sm font-bold text-indigo-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+                            <Filter className="w-4 h-4" />
+                            Filter by Subspecialty
+                        </label>
+                        <Select
+                            value={subspecialtyFilter}
+                            onValueChange={onSubspecialtyChange}
+                        >
+                            <SelectTrigger className="bg-white dark:bg-slate-950 h-11 border-indigo-200 dark:border-purple-700">
+                                <SelectValue placeholder="All Subspecialties" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {SUBSPECIALTY_OPTIONS.map(s => (
+                                    <SelectItem key={s} value={s}>{s === 'All' ? 'View All Subspecialties' : s}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Free Text Search */}
+                    <div className="flex-[2] min-w-[300px]">
+                        <label className="text-sm font-bold text-indigo-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+                            <Search className="w-4 h-4" />
+                            Search Condition or Keywords
+                        </label>
+                        <div className="relative">
+                            <Input
+                                type="text"
+                                placeholder="e.g., Pap Smear, Fibroid, Infertility"
+                                value={searchText}
+                                onChange={(e) => onSearchTextChange(e.target.value)}
+                                className="pl-4 h-11 bg-white dark:bg-slate-950 border-indigo-200 dark:border-purple-700"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 
 // --- Main Rule Configurator Component ---
-const RuleConfigurator = ({ rules, onSave, isReadOnly, isDark }) => {
+const RuleConfigurator = ({ rules, onSave, isReadOnly }) => {
     const [localRules, setLocalRules] = useState(rules);
     const [statusMessage, setStatusMessage] = useState('');
-    
+
     // State for Filtering
     const [subspecialtyFilter, setSubspecialtyFilter] = useState('All');
     const [searchText, setSearchText] = useState('');
@@ -222,97 +241,120 @@ const RuleConfigurator = ({ rules, onSave, isReadOnly, isDark }) => {
         const searchLower = searchText.toLowerCase().trim();
 
         if (subspecialtyFilter !== 'All') {
-            currentRules = currentRules.filter(rule => 
+            currentRules = currentRules.filter(rule =>
                 (rule.subspecialty || rule.division) === subspecialtyFilter
             );
         }
 
         if (searchLower) {
-            currentRules = currentRules.filter(rule => 
+            currentRules = currentRules.filter(rule =>
                 rule.condition.toLowerCase().includes(searchLower) ||
                 (rule.keywords && rule.keywords.toLowerCase().includes(searchLower))
             );
         }
-        
+
         return currentRules;
     }, [localRules, subspecialtyFilter, searchText]);
 
     const handleRuleChange = useCallback((index, field, value) => {
-        setLocalRules(prevRules => 
-            prevRules.map((rule, i) => 
+        setLocalRules(prevRules =>
+            prevRules.map((rule, i) =>
                 i === index ? { ...rule, [field]: value } : rule
             )
         );
     }, []);
 
     const handleSave = async () => {
-        setStatusMessage('Saving configuration (mock operation)...');
-        
+        setStatusMessage('Saving...');
+
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000)); 
-            
-            onSave(localRules); 
-            setStatusMessage('Configuration saved to UI state! (Persistence requires backend) ✅');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            onSave(localRules);
+            setStatusMessage('success');
             setTimeout(() => setStatusMessage(''), 5000);
 
         } catch (error) {
             console.error('Save error:', error);
-            setStatusMessage(`Simulated save failed: ${error.message} ❌`);
+            setStatusMessage('error');
         }
     };
 
-    const statusStyle = { 
-        margin: '10px 0', 
-        padding: '10px', 
-        borderRadius: '4px', 
-        fontWeight: 'bold', 
-        // Dynamic status colors
-        color: statusMessage.includes('failed') ? (isDark ? '#ff6666' : 'red') : (isDark ? '#66ff66' : 'green'), 
-        backgroundColor: statusMessage.includes('failed') ? (isDark ? '#5c1b1b' : '#f8d7da') : (isDark ? '#1c5c1c' : '#d4edda'),
-    };
-
     return (
-        <div style={getDynamicStyle('configContainerStyle', isDark)}>
+        <div className="space-y-6">
 
-            <FilterBar 
+            <FilterBar
                 subspecialtyFilter={subspecialtyFilter}
                 searchText={searchText}
                 onSubspecialtyChange={setSubspecialtyFilter}
                 onSearchTextChange={setSearchText}
-                isDark={isDark} // Pass theme prop
             />
-            <p style={{ margin: '15px 0 20px', color: isDark ? '#999' : '#6c757d', fontWeight: 'bold' }}>
-                {filteredRules.length} rules displayed.
-            </p>
 
-            {!isReadOnly && statusMessage && <div style={statusStyle}>{statusMessage}</div>}
+            <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    Showing {filteredRules.length} rules
+                </p>
 
-            <div style={getDynamicStyle('rulesGridStyle', isDark)}>
-                {filteredRules.length > 0 ? (
-                    filteredRules.map((rule, index) => (
-                        <RuleCard 
-                            key={index} 
-                            rule={rule} 
-                            index={localRules.findIndex(r => r === rule)} 
-                            onRuleChange={handleRuleChange} 
-                            isReadOnly={isReadOnly} 
-                            isDark={isDark} // Pass theme prop
-                        />
-                    ))
-                ) : (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: isDark ? '#888' : '#6c757d', fontSize: '18px' }}>
-                        No rules match the current filters or search term.
+                {!isReadOnly && (
+                    <div className="flex items-center gap-4">
+                        {statusMessage && (
+                            <div className={`text-sm font-bold flex items-center animate-in fade-in slide-in-from-right-5 ${statusMessage === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600'}`}>
+                                {statusMessage === 'success' ? (
+                                    <>
+                                        <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                                        Saved Successfully
+                                    </>
+                                ) : statusMessage === 'Saving...' ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <AlertCircle className="w-4 h-4 mr-1.5" />
+                                        Save Failed
+                                    </>
+                                )}
+                            </div>
+                        )}
+                        <Button
+                            onClick={handleSave}
+                            disabled={statusMessage === 'Saving...'}
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold shadow-lg"
+                        >
+                            <Save className="w-4 h-4 mr-2" />
+                            Save Configuration
+                        </Button>
                     </div>
                 )}
             </div>
-            
-            {!isReadOnly && (
-                <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                    <button onClick={handleSave} style={getDynamicStyle('saveButtonStyle', isDark)}>
-                        💾 Save All Triage Rules Configuration
-                    </button>
-                </div>
-            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <AnimatePresence>
+                    {filteredRules.length > 0 ? (
+                        filteredRules.map((rule, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <RuleCard
+                                    rule={rule}
+                                    index={localRules.findIndex(r => r === rule)}
+                                    onRuleChange={handleRuleChange}
+                                    isReadOnly={isReadOnly}
+                                />
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className="col-span-full py-12 text-center text-slate-500">
+                            <p className="text-lg">No rules match the current filters or search term.</p>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
+
         </div>
     );
 };
@@ -322,18 +364,15 @@ const AdminRules = () => {
     const [rules, setRules] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    
-    // Detect dark mode from the environment
-    const isDark = useThemeDetector();
-    const [isReadOnly, setIsReadOnly] = useState(false); 
-    
+    const [isReadOnly, setIsReadOnly] = useState(false);
+
     const toggleReadOnly = () => {
         setIsReadOnly(prev => !prev);
     };
 
     useEffect(() => {
         const fetchRules = async () => {
-             try {
+            try {
                 const response = await fetch(CSV_FILE_PATH);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}. Check console and ensure 'symptoms.csv' is in the public directory.`);
@@ -348,8 +387,8 @@ const AdminRules = () => {
                             row => row.condition && row.division
                         ).map(rule => ({
                             ...rule,
-                            subspecialty: rule.division 
-                        })); 
+                            subspecialty: rule.division
+                        }));
                         setRules(cleanData);
                         setIsLoading(false);
                     },
@@ -371,125 +410,84 @@ const AdminRules = () => {
         setRules(newRules);
     };
 
-    if (isLoading) return <div style={getDynamicStyle('pageStyle', isDark)}>Loading Triage Rules...</div>;
-    
-    if (error) return <div style={{ ...getDynamicStyle('pageStyle', isDark), color: '#721c24', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb' }}>Error: {error}</div>;
-
-    return (
-        <div style={getDynamicStyle('pageStyle', isDark)}>
-            <header style={getDynamicStyle('headerStyle', isDark)}>
-                <div style={getDynamicStyle('headerContentStyle', isDark)}>
-                    <h1 style={{ color: isDark ? '#eee' : '#343a40' }}>Subspecialist Triage System </h1>
-                    <button onClick={toggleReadOnly} style={getDynamicStyle('toggleButtonStyle', isReadOnly, isDark)}>
-                        {isReadOnly ? '🔑 Enable Editing' : '🔒 Disable Editing'}
-                    </button>
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-16 h-16 text-indigo-600 dark:text-purple-400 animate-spin mx-auto mb-4" />
+                    <p className="text-xl font-bold text-indigo-800 dark:text-purple-200">Loading Configuration...</p>
                 </div>
-            </header>
-
-            <hr style={getDynamicStyle('separatorStyle', isDark)} />
-
-            <RuleConfigurator rules={rules} onSave={handleRulesSave} isReadOnly={isReadOnly} isDark={isDark} />
-        </div>
-    );
-};
-
-
-// --- 2. DYNAMIC STYLES MAPPING ---
-
-const lightStyles = {
-    // Page/Layout
-    pageStyle: { backgroundColor: '#fff', color: '#212529', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' },
-    headerStyle: { borderBottom: '4px solid #007bff' },
-    separatorStyle: { borderTop: '1px solid #ddd' },
-
-    // Buttons
-    toggleButtonStyle: (isReadOnly) => ({ 
-        backgroundColor: isReadOnly ? '#ffc107' : '#dc3545', color: 'white' 
-    }),
-    saveButtonStyle: { backgroundColor: '#28a745', color: 'white' },
-    
-    // Config/Filter
-    configContainerStyle: { backgroundColor: '#f8f9fa' },
-    filterBarStyle: { backgroundColor: '#fff', border: '1px solid #ddd' },
-    
-    // Rule Grid/Card
-    ruleCardStyle: { border: '1px solid #e0e0e0', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)', color: '#212529'},
-    ruleHeaderStyle: { borderBottom: '1px solid #eee', color: '#343a40' },
-    
-    // Form Elements
-    labelStyle: { color: '#343a40' },
-    inputStyle: { border: '1px solid #ced4da', backgroundColor: 'white', color: '#495057' },
-    selectStyle: { border: '1px solid #ced4da', backgroundColor: 'white', color: '#495057' },
-};
-
-const darkStyles = {
-    // Page/Layout
-    pageStyle: { backgroundColor: '#121212', color: '#eee', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)' },
-    headerStyle: { borderBottom: '4px solid #4a90e2' },
-    separatorStyle: { borderTop: '1px solid #333' },
-
-    // Buttons
-    toggleButtonStyle: (isReadOnly) => ({ 
-        backgroundColor: isReadOnly ? '#ffc107' : '#dc3545', color: 'white' 
-    }),
-    saveButtonStyle: { backgroundColor: '#4caf50', color: 'white' },
-    
-    // Config/Filter
-    configContainerStyle: { backgroundColor: '#1f1f1f' },
-    filterBarStyle: { backgroundColor: '#2a2a2a', border: '1px solid #333' },
-
-    // Rule Grid/Card
-    ruleCardStyle: { border: '1px solid #333', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)', color: '#eee'},
-    ruleHeaderStyle: { borderBottom: '1px solid #333', color: '#eee' },
-    
-    // Form Elements
-    labelStyle: { color: '#bbb' },
-    inputStyle: { border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#eee' },
-    selectStyle: { border: '1px solid #444', backgroundColor: '#2a2a2a', color: '#eee' },
-};
-
-// Base styles that are theme-agnostic (or mostly presentation)
-const baseStyles = {
-    pageStyle: { fontFamily: 'Roboto, sans-serif', maxWidth: '1400px', margin: '20px auto', padding: '20px', borderRadius: '8px' },
-    headerContentStyle: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
-    toggleButtonStyle: (isReadOnly) => ({
-        padding: '10px 15px', fontSize: '14px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        // Color is handled by theme map
-    }),
-    saveButtonStyle: { padding: '12px 30px', fontSize: '18px', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: 'background-color 0.2s' },
-    rulesGridStyle: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' },
-    ruleCardStyle: { borderRadius: '6px', padding: '15px', transition: 'background-color 0.3s ease' },
-    ruleHeaderStyle: { fontSize: '18px', marginBottom: '15px', paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    priorityBadgeStyle: { padding: '4px 10px', borderRadius: '4px', fontSize: '12px' },
-    inputGroupStyle: { marginBottom: '10px' },
-    labelStyle: { display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' },
-    inputStyle: { width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px' },
-    selectStyle: { width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', appearance: 'none', cursor: 'pointer' },
-    textareaStyle: { minHeight: '60px', resize: 'vertical' },
-    configContainerStyle: { padding: '20px', borderRadius: '8px' },
-    filterBarStyle: { display: 'flex', gap: '20px', marginBottom: '20px', padding: '15px', borderRadius: '6px' },
-};
-
-// Function to get the correct merged style based on theme
-const getDynamicStyle = (styleName, isDark, isReadOnly = false) => {
-    const themeStyles = isDark ? darkStyles : lightStyles;
-    
-    // Special handling for functional styles like toggleButtonStyle
-    if (styleName === 'toggleButtonStyle') {
-        const baseFunc = baseStyles[styleName];
-        const themeFunc = themeStyles[styleName];
-        
-        // Merge the result of the function calls
-        return {
-            ...baseFunc(isReadOnly),
-            ...themeFunc(isReadOnly),
-        };
+            </div>
+        )
     }
 
-    return {
-        ...baseStyles[styleName],
-        ...themeStyles[styleName],
-    };
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center">
+                <Card className="max-w-md border-red-200 bg-red-50 text-red-900">
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <AlertCircle className="w-6 h-6 text-red-600" />
+                            <h3 className="font-bold text-lg">Error Loading Rules</h3>
+                        </div>
+                        <p>{error}</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 py-12 px-6">
+            <div className="max-w-[1600px] mx-auto">
+                {/* Header */}
+                <div className="mb-12">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                            <div>
+                                <div className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-200 dark:bg-purple-900 rounded-full mb-6 border-2 border-indigo-300 dark:border-purple-700">
+                                    <Key className="w-5 h-5 text-indigo-700 dark:text-purple-300" />
+                                    <span className="text-sm font-bold text-indigo-900 dark:text-purple-200">
+                                        Admin Controls
+                                    </span>
+                                </div>
+                                <h1 className="text-5xl lg:text-6xl font-black mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                                    Triage Rules Configuration
+                                </h1>
+                                <p className="text-xl text-indigo-700 dark:text-purple-300 font-semibold">
+                                    Manage routing logic and scheduling priorities
+                                </p>
+                            </div>
+
+                            <Button
+                                onClick={toggleReadOnly}
+                                variant={isReadOnly ? "default" : "secondary"}
+                                className={`text-lg px-8 py-6 h-auto shadow-xl transition-all ${isReadOnly
+                                        ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                        : "bg-white text-indigo-900 border-2 border-indigo-200 hover:border-indigo-400"
+                                    }`}
+                            >
+                                {isReadOnly ? (
+                                    <>
+                                        <Lock className="w-5 h-5 mr-3" />
+                                        Enable Editing
+                                    </>
+                                ) : (
+                                    <>
+                                        <Unlock className="w-5 h-5 mr-3" />
+                                        Disable Editing
+                                    </>
+                                )}
+                            </Button>
+
+                        </div>
+                    </motion.div>
+                </div>
+
+                <RuleConfigurator rules={rules} onSave={handleRulesSave} isReadOnly={isReadOnly} />
+            </div>
+        </div>
+    );
 };
 
 export default AdminRules;

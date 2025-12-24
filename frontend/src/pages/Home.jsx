@@ -38,7 +38,7 @@ export default function Home() {
   const stats = [
     { label: "Subspecialties", value: "6", icon: Brain },
     { label: "Doctor Network", value: "20+", icon: Users },
-    { label: "Triage Accuracy", value: "97~%", icon: TrendingUp },
+    { label: "Triage Accuracy", value: "~95%", icon: TrendingUp },
     { label: "HIPAA Compliant", value: "100%", icon: Lock }
   ];
 
@@ -49,7 +49,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 via-purple-600/10 to-pink-600/10 dark:from-indigo-600/20 dark:via-purple-600/20 dark:to-pink-600/20"></div>
         <div className="absolute top-20 left-10 w-72 h-72 bg-indigo-400 dark:bg-indigo-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-30 animate-pulse"></div>
         <div className="absolute top-40 right-10 w-72 h-72 bg-purple-400 dark:bg-purple-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-30 animate-pulse delay-1000"></div>
-        
+
         <div className="relative max-w-7xl mx-auto px-6 py-24 lg:py-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -63,15 +63,15 @@ export default function Home() {
                 Call Center Agent Platform
               </span>
             </div>
-            
+
             <h1 className="text-5xl lg:text-7xl font-black mb-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent leading-tight pb-2">
               Intelligent OB/GYN<br />Triage System
             </h1>
-            
+
             <p className="text-xl lg:text-2xl text-indigo-700 dark:text-purple-300 mb-12 max-w-3xl mx-auto font-semibold">
               Empower your call center agents with AI-powered triage that connects patients to the right subspecialist every time
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to={createPageUrl("AgentTriage")}>
                 <Button size="lg" className="text-lg px-12 py-8 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 hover:scale-105 shadow-2xl text-white font-black">
@@ -166,7 +166,7 @@ export default function Home() {
           <CardContent className="p-16 lg:p-20 relative">
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/20 rounded-full -mr-40 -mt-40"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full -ml-48 -mb-48"></div>
-            
+
             <div className="relative z-10 text-center">
               <h2 className="text-5xl lg:text-6xl font-black mb-6 drop-shadow-2xl">
                 Ready to Transform Your Call Center?

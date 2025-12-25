@@ -64,8 +64,8 @@ const getSubspecialtyColorClasses = (subspecialty) => {
         case 'OB/GYN': return "bg-sky-50 dark:bg-sky-950/30 border-sky-100 dark:border-sky-900";
         case 'GYNONC': return "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900";
         case 'UROGYN': return "bg-teal-50 dark:bg-teal-950/30 border-teal-100 dark:border-teal-900";
-        case 'MIS': return "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900";
-        case 'MFM': return "bg-purple-50 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900";
+        case 'MIS': return "bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900";
+        case 'MFM': return "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900";
         case 'REI': return "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900";
         default: return "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800";
     }
@@ -177,12 +177,12 @@ const FilterBar = ({ subspecialtyFilter, searchText, onSubspecialtyChange, onSea
     const SUBSPECIALTY_OPTIONS = ['All', 'OB/GYN', 'GYNONC', 'UROGYN', 'MIS', 'MFM', 'REI'];
 
     return (
-        <Card className="border-3 border-indigo-200 dark:border-purple-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm mb-8">
+        <Card className="border-3 border-red-200 dark:border-red-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm mb-8">
             <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* Subspecialty Filter Dropdown */}
                     <div className="flex-1 min-w-[200px]">
-                        <label className="text-sm font-bold text-indigo-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+                        <label className="text-sm font-bold text-red-900 dark:text-red-100 mb-2 flex items-center gap-2">
                             <Filter className="w-4 h-4" />
                             Filter by Subspecialty
                         </label>
@@ -190,7 +190,7 @@ const FilterBar = ({ subspecialtyFilter, searchText, onSubspecialtyChange, onSea
                             value={subspecialtyFilter}
                             onValueChange={onSubspecialtyChange}
                         >
-                            <SelectTrigger className="bg-white dark:bg-slate-950 h-11 border-indigo-200 dark:border-purple-700">
+                            <SelectTrigger className="bg-white dark:bg-slate-950 h-11 border-red-200 dark:border-red-700">
                                 <SelectValue placeholder="All Subspecialties" />
                             </SelectTrigger>
                             <SelectContent>
@@ -203,7 +203,7 @@ const FilterBar = ({ subspecialtyFilter, searchText, onSubspecialtyChange, onSea
 
                     {/* Free Text Search */}
                     <div className="flex-[2] min-w-[300px]">
-                        <label className="text-sm font-bold text-indigo-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+                        <label className="text-sm font-bold text-red-900 dark:text-red-100 mb-2 flex items-center gap-2">
                             <Search className="w-4 h-4" />
                             Search Condition or Keywords
                         </label>
@@ -213,7 +213,7 @@ const FilterBar = ({ subspecialtyFilter, searchText, onSubspecialtyChange, onSea
                                 placeholder="e.g., Pap Smear, Fibroid, Infertility"
                                 value={searchText}
                                 onChange={(e) => onSearchTextChange(e.target.value)}
-                                className="pl-4 h-11 bg-white dark:bg-slate-950 border-indigo-200 dark:border-purple-700"
+                                className="pl-4 h-11 bg-white dark:bg-slate-950 border-red-200 dark:border-red-700"
                             />
                         </div>
                     </div>
@@ -412,10 +412,10 @@ const AdminRules = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-br from-red-100 via-rose-50 to-slate-50 dark:from-red-950 dark:via-rose-950 dark:to-slate-950 flex items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="w-16 h-16 text-indigo-600 dark:text-purple-400 animate-spin mx-auto mb-4" />
-                    <p className="text-xl font-bold text-indigo-800 dark:text-purple-200">Loading Configuration...</p>
+                    <Loader2 className="w-16 h-16 text-red-600 dark:text-red-400 animate-spin mx-auto mb-4" />
+                    <p className="text-xl font-bold text-red-800 dark:text-red-200">Loading Configuration...</p>
                 </div>
             </div>
         )
@@ -423,7 +423,7 @@ const AdminRules = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-br from-red-100 via-rose-50 to-slate-50 dark:from-red-950 dark:via-rose-950 dark:to-slate-950 flex items-center justify-center">
                 <Card className="max-w-md border-red-200 bg-red-50 text-red-900">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-2 mb-2">
@@ -438,23 +438,23 @@ const AdminRules = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950 py-12 px-6">
+        <div className="min-h-screen bg-gradient-to-br from-red-100 via-rose-50 to-slate-50 dark:from-red-950 dark:via-rose-950 dark:to-slate-950 py-12 px-6">
             <div className="max-w-[1600px] mx-auto">
                 {/* Header */}
                 <div className="mb-12">
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                             <div>
-                                <div className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-200 dark:bg-purple-900 rounded-full mb-6 border-2 border-indigo-300 dark:border-purple-700">
-                                    <Key className="w-5 h-5 text-indigo-700 dark:text-purple-300" />
-                                    <span className="text-sm font-bold text-indigo-900 dark:text-purple-200">
+                                <div className="inline-flex items-center gap-2 px-6 py-3 bg-red-200 dark:bg-red-900 rounded-full mb-6 border-2 border-red-300 dark:border-red-700">
+                                    <Key className="w-5 h-5 text-red-700 dark:text-red-300" />
+                                    <span className="text-sm font-bold text-red-900 dark:text-red-200">
                                         Admin Controls
                                     </span>
                                 </div>
-                                <h1 className="text-5xl lg:text-6xl font-black mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                                <h1 className="text-5xl lg:text-6xl font-black mb-4 bg-gradient-to-r from-red-600 via-red-500 to-rose-500 dark:from-red-400 dark:via-red-400 dark:to-rose-400 bg-clip-text text-transparent">
                                     Triage Rules Configuration
                                 </h1>
-                                <p className="text-xl text-indigo-700 dark:text-purple-300 font-semibold">
+                                <p className="text-xl text-red-700 dark:text-red-300 font-semibold">
                                     Manage routing logic and scheduling priorities
                                 </p>
                             </div>
@@ -463,8 +463,8 @@ const AdminRules = () => {
                                 onClick={toggleReadOnly}
                                 variant={isReadOnly ? "default" : "secondary"}
                                 className={`text-lg px-8 py-6 h-auto shadow-xl transition-all ${isReadOnly
-                                        ? "bg-amber-500 hover:bg-amber-600 text-white"
-                                        : "bg-white text-indigo-900 border-2 border-indigo-200 hover:border-indigo-400"
+                                    ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                    : "bg-white text-red-900 border-2 border-red-200 hover:border-red-400"
                                     }`}
                             >
                                 {isReadOnly ? (

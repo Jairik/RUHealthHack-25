@@ -7,9 +7,9 @@ import { format } from "date-fns";
 
 export default function PatientInfoPanel({ patient }) {
   return (
-    <Card className="border-3 border-indigo-300 dark:border-purple-700 shadow-xl bg-white dark:bg-slate-900">
+    <Card className="border-3 border-red-300 dark:border-red-700 shadow-xl bg-white dark:bg-slate-900">
       <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-indigo-800 dark:text-purple-200 text-xl font-black">
+        <CardTitle className="flex items-center gap-3 text-red-800 dark:text-red-200 text-xl font-black">
           <UserCircle className="w-6 h-6" />
           Patient Information
         </CardTitle>
@@ -19,17 +19,17 @@ export default function PatientInfoPanel({ patient }) {
           {/* Basic Info */}
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-bold text-indigo-600 dark:text-purple-400 mb-1">Full Name</p>
-              <p className="text-lg font-black text-indigo-900 dark:text-purple-100">
+              <p className="text-sm font-bold text-red-600 dark:text-red-400 mb-1">Full Name</p>
+              <p className="text-lg font-black text-red-900 dark:text-red-100">
                 {patient.firstName} {patient.lastName}
               </p>
             </div>
             <div>
-              <p className="text-sm font-bold text-indigo-600 dark:text-purple-400 mb-1 flex items-center gap-1">
+              <p className="text-sm font-bold text-red-600 dark:text-red-400 mb-1 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 Date of Birth
               </p>
-              <p className="text-lg font-black text-indigo-900 dark:text-purple-100">
+              <p className="text-lg font-black text-red-900 dark:text-red-100">
                 {format(new Date(patient.dob), 'MMMM d, yyyy')}
               </p>
             </div>
@@ -37,7 +37,7 @@ export default function PatientInfoPanel({ patient }) {
 
           {/* Health History */}
           <div>
-            <p className="text-sm font-bold text-indigo-600 dark:text-purple-400 mb-3 flex items-center gap-1">
+            <p className="text-sm font-bold text-red-600 dark:text-red-400 mb-3 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
               Existing Conditions
             </p>
@@ -53,7 +53,7 @@ export default function PatientInfoPanel({ patient }) {
                 ))}
               </div>
             ) : (
-              <p className="text-indigo-700 dark:text-purple-300 italic">No existing conditions on record</p>
+              <p className="text-red-700 dark:text-red-300 italic">No existing conditions on record</p>
             )}
           </div>
         </div>

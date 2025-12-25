@@ -121,13 +121,13 @@ export default function AgentTriage() {
       setSubspecialists(
         (data.subspecialty_results ?? [])
           .map(s => ({ name: s.subspecialty_name, short: s.subspecialty_short, rank: s.rank, confidence: Math.round(Number(s.percent_match ?? 0)) }))
-          .sort((a,b) => b.confidence - a.confidence)
+          .sort((a, b) => b.confidence - a.confidence)
       );
 
       setConditions(
         (data.condition_results ?? [])
           .map(c => ({ name: c.condition, probability: Math.round(Number((c.condition_results ?? c.probability ?? 0)) * 100) }))
-          .sort((a,b) => b.probability - a.probability)
+          .sort((a, b) => b.probability - a.probability)
       );
 
       setDoctorMatches((data.doctor_results ?? []).map(d => ({ label: d.rank, name: d.name })));
@@ -184,7 +184,7 @@ export default function AgentTriage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-red-100 via-rose-50 to-slate-50 dark:from-red-950 dark:via-rose-950 dark:to-slate-950">
       {step === 1 ? (
         <PatientInfoForm onSubmit={handlePatientSubmit} loading={loading} />
       ) : (
@@ -197,7 +197,7 @@ export default function AgentTriage() {
           >
             {/* Case Number Banner */}
             <div className="flex items-center justify-center">
-              <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-full shadow-lg">
+              <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 via-red-500 to-rose-500 dark:from-red-700 dark:via-red-600 dark:to-rose-600 rounded-full shadow-lg">
                 <span className="text-sm font-bold text-white">
                   Case Number: {caseNumber}
                 </span>
@@ -206,7 +206,7 @@ export default function AgentTriage() {
 
             {/* Patient Info Panel */}
             <PatientInfoPanel patient={patient} />
-            
+
             {/* Question Panel */}
             <QuestionPanel
               currentQuestion={currentQuestion}
@@ -214,7 +214,7 @@ export default function AgentTriage() {
               onSubmitAnswer={handleAnswerSubmit}
               loading={loading}
             />
-            
+
             {/* Subspecialist, Conditions, and Doctor Match Panel */}
             <SubspecialistPanel
               subspecialists={subspecialists}
@@ -254,32 +254,32 @@ export default function AgentTriage() {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-2xl"
             >
-              <Card className="border-4 border-indigo-300 dark:border-purple-700 shadow-2xl bg-white dark:bg-slate-900">
+              <Card className="border-4 border-red-300 dark:border-red-700 shadow-2xl bg-white dark:bg-slate-900">
                 <CardContent className="p-8 space-y-6">
                   <div className="text-center">
                     <CheckCircle className="w-16 h-16 text-green-600 dark:text-green-500 mx-auto mb-4" />
-                    <h2 className="text-3xl font-black text-indigo-900 dark:text-purple-200 mb-2">
+                    <h2 className="text-3xl font-black text-red-900 dark:text-red-200 mb-2">
                       End Conversation
                     </h2>
-                    <p className="text-indigo-700 dark:text-purple-300 font-semibold">
+                    <p className="text-red-700 dark:text-red-300 font-semibold">
                       This will save the triage case to the dashboard
                     </p>
                   </div>
 
                   {/* Summary */}
                   <div className="space-y-4">
-                    <div className="p-5 bg-indigo-100 dark:bg-purple-900/30 rounded-xl border-2 border-indigo-300 dark:border-purple-700">
-                      <p className="text-sm font-bold text-indigo-600 dark:text-purple-400 mb-3">
+                    <div className="p-5 bg-red-100 dark:bg-red-900/30 rounded-xl border-2 border-red-300 dark:border-red-700">
+                      <p className="text-sm font-bold text-red-600 dark:text-red-400 mb-3">
                         Final Recommendation:
                       </p>
                       <div className="space-y-2">
-                        <p className="text-lg font-black text-indigo-900 dark:text-purple-100">
+                        <p className="text-lg font-black text-red-900 dark:text-red-100">
                           {subspecialists[0]?.name} ({Math.round(subspecialists[0]?.confidence)}% confidence)
                         </p>
-                        <p className="text-base font-semibold text-indigo-800 dark:text-purple-200">
+                        <p className="text-base font-semibold text-red-800 dark:text-red-200">
                           Recommended Doctor: Dr. {doctorMatches[0]?.name}
                         </p>
-                        <p className="text-sm font-semibold text-indigo-700 dark:text-purple-300">
+                        <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                           {questionHistory.length} questions asked
                         </p>
                       </div>
@@ -297,7 +297,7 @@ export default function AgentTriage() {
 
                   {/* Agent Notes */}
                   <div>
-                    <label className="block text-base font-bold mb-3 text-indigo-800 dark:text-purple-200">
+                    <label className="block text-base font-bold mb-3 text-red-800 dark:text-red-200">
                       Agent Notes (Optional):
                     </label>
                     <Textarea
@@ -305,7 +305,7 @@ export default function AgentTriage() {
                       onChange={(e) => setAgentNotes(e.target.value)}
                       placeholder="Add any additional notes about this case..."
                       rows={4}
-                      className="text-lg bg-white dark:bg-slate-950 text-indigo-900 dark:text-purple-100 border-3 border-indigo-400 dark:border-purple-600 font-semibold"
+                      className="text-lg bg-white dark:bg-slate-950 text-red-900 dark:text-red-100 border-3 border-red-400 dark:border-red-600 font-semibold"
                     />
                   </div>
 
@@ -315,7 +315,7 @@ export default function AgentTriage() {
                       variant="outline"
                       onClick={() => setShowEndDialog(false)}
                       disabled={saving}
-                      className="flex-1 text-lg py-6 border-3 border-indigo-400 dark:border-purple-600 text-indigo-800 dark:text-purple-200 hover:bg-indigo-100 dark:hover:bg-purple-900/50 font-black"
+                      className="flex-1 text-lg py-6 border-3 border-red-400 dark:border-red-600 text-red-800 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/50 font-black"
                     >
                       <XCircle className="w-5 h-5 mr-2" />
                       Cancel

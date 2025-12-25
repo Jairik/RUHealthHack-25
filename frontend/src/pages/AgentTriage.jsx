@@ -1,14 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PatientInfoForm from "../components/agent/PatientInfoForm";
 import PatientInfoPanel from "../components/agent/PatientInfoPanel";
 import QuestionPanel from "../components/agent/QuestionPanel";
 import SubspecialistPanel from "../components/agent/SubspecialistPanel";
+import UrgencyAlert, { detectUrgency } from "../components/agent/UrgencyAlert";
+import ProtocolsSidebar from "../components/agent/ProtocolsSidebar";
+import CallbackScheduler from "../components/agent/CallbackScheduler";
+import KeyboardShortcutsHelp from "../components/ui/KeyboardShortcutsHelp";
+import useKeyboardShortcuts from "@/hooks/useKeyboardShortcuts";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, BookOpen, Phone, Keyboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTriageContext } from "@/contexts/TriageContext";
 
@@ -30,6 +35,30 @@ export default function AgentTriage() {
   const [caseNumber, setCaseNumber] = useState("");
   const { triageData, setTriageData } = useTriageContext();
   const [triageId, setTriageId] = useState(null);
+
+  // New feature states
+  const [urgency, setUrgency] = useState(null);
+  const [showProtocols, setShowProtocols] = useState(false);
+  const [showCallback, setShowCallback] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [allSymptoms, setAllSymptoms] = useState("");
+
+  // Check for urgency when conditions or answers change
+  useEffect(() => {
+    const symptomText = questionHistory.map(q => q.answer || '').join(' ');
+    setAllSymptoms(symptomText);
+    const detected = detectUrgency(symptomText, conditions);
+    if (detected && !urgency) {
+      setUrgency(detected);
+    }
+  }, [questionHistory, conditions]);
+
+  // Keyboard shortcuts (only active in step 2)
+  useKeyboardShortcuts(step === 2 ? {
+    onProtocols: () => setShowProtocols(prev => !prev),
+    onEnd: () => handleEndConversation(),
+    onHelp: () => setShowShortcuts(true),
+  } : {});
 
 
   // MOCK DATA - Questions pool
@@ -121,13 +150,13 @@ export default function AgentTriage() {
       setSubspecialists(
         (data.subspecialty_results ?? [])
           .map(s => ({ name: s.subspecialty_name, short: s.subspecialty_short, rank: s.rank, confidence: Math.round(Number(s.percent_match ?? 0)) }))
-          .sort((a,b) => b.confidence - a.confidence)
+          .sort((a, b) => b.confidence - a.confidence)
       );
 
       setConditions(
         (data.condition_results ?? [])
           .map(c => ({ name: c.condition, probability: Math.round(Number((c.condition_results ?? c.probability ?? 0)) * 100) }))
-          .sort((a,b) => b.probability - a.probability)
+          .sort((a, b) => b.probability - a.probability)
       );
 
       setDoctorMatches((data.doctor_results ?? []).map(d => ({ label: d.rank, name: d.name })));
@@ -195,18 +224,56 @@ export default function AgentTriage() {
             transition={{ duration: 0.5 }}
             className="space-y-6"
           >
-            {/* Case Number Banner */}
-            <div className="flex items-center justify-center">
+            {/* Case Number Banner with Action Buttons */}
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-full shadow-lg">
                 <span className="text-sm font-bold text-white">
                   Case Number: {caseNumber}
                 </span>
               </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowProtocols(true)}
+                  className="border-2 border-indigo-300 dark:border-purple-600 font-bold"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Protocols
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCallback(true)}
+                  className="border-2 border-indigo-300 dark:border-purple-600 font-bold"
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  Callback
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowShortcuts(true)}
+                  className="text-indigo-600 dark:text-purple-400"
+                  title="Keyboard shortcuts (?)"
+                >
+                  <Keyboard className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
+
+            {/* Urgency Alert */}
+            <AnimatePresence>
+              {urgency && (
+                <UrgencyAlert
+                  urgency={urgency}
+                  onDismiss={() => setUrgency(null)}
+                  onEscalate={(u) => console.log('Escalated:', u)}
+                />
+              )}
+            </AnimatePresence>
 
             {/* Patient Info Panel */}
             <PatientInfoPanel patient={patient} />
-            
+
             {/* Question Panel */}
             <QuestionPanel
               currentQuestion={currentQuestion}
@@ -214,12 +281,13 @@ export default function AgentTriage() {
               onSubmitAnswer={handleAnswerSubmit}
               loading={loading}
             />
-            
+
             {/* Subspecialist, Conditions, and Doctor Match Panel */}
             <SubspecialistPanel
               subspecialists={subspecialists}
               conditions={conditions}
               doctorMatches={doctorMatches}
+              questionHistory={questionHistory}
             />
 
             {/* End Conversation Button */}
@@ -236,6 +304,28 @@ export default function AgentTriage() {
           </motion.div>
         </div>
       )}
+
+      {/* Protocols Sidebar */}
+      <ProtocolsSidebar
+        isOpen={showProtocols}
+        onClose={() => setShowProtocols(false)}
+        currentConditions={conditions}
+        currentSymptoms={allSymptoms}
+      />
+
+      {/* Callback Scheduler */}
+      <CallbackScheduler
+        isOpen={showCallback}
+        onClose={() => setShowCallback(false)}
+        patient={patient}
+        onSchedule={(data) => console.log('Callback scheduled:', data)}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
 
       {/* End Conversation Dialog */}
       <AnimatePresence>

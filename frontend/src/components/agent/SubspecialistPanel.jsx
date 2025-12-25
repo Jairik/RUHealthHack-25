@@ -3,11 +3,14 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Users, Star, AlertCircle } from "lucide-react";
+import { TrendingUp, Users, Star, AlertCircle, AlertTriangle, UserCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import ExplainabilityPanel from "./ExplainabilityPanel";
 
-export default function SubspecialistPanel({ subspecialists, conditions, doctorMatches }) {
+export default function SubspecialistPanel({ subspecialists, conditions, doctorMatches, questionHistory = [] }) {
   const matchLabels = ["Best Match", "Top Match", "Second Match"];
+  const topSubspecialist = subspecialists?.[0];
+  const isLowConfidence = topSubspecialist && topSubspecialist.confidence < 50;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -20,6 +23,25 @@ export default function SubspecialistPanel({ subspecialists, conditions, doctorM
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Low Confidence Warning */}
+          {isLowConfidence && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-400 dark:border-amber-600 rounded-xl"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <span className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                  Low Confidence - Consider Human Review
+                </span>
+              </div>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                Top recommendation is below 50% confidence. Consult with supervisor if uncertain.
+              </p>
+            </motion.div>
+          )}
+
           <div className="space-y-4">
             {subspecialists && subspecialists.map((subspecialist, index) => (
               <motion.div
@@ -33,23 +55,32 @@ export default function SubspecialistPanel({ subspecialists, conditions, doctorM
                   <span className="text-xs font-bold text-indigo-900 dark:text-purple-200">
                     {subspecialist.name}
                   </span>
-                  <Badge className={`${
-                    subspecialist.confidence >= 70
+                  <Badge className={`${subspecialist.confidence >= 70
                       ? 'bg-green-200 dark:bg-green-900 text-green-900 dark:text-green-100 border-green-400 dark:border-green-600'
                       : subspecialist.confidence >= 40
-                      ? 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border-yellow-400 dark:border-yellow-600'
-                      : 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100 border-red-400 dark:border-red-600'
-                  } border-2 font-black px-2 py-0.5 text-xs`}>
+                        ? 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border-yellow-400 dark:border-yellow-600'
+                        : 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100 border-red-400 dark:border-red-600'
+                    } border-2 font-black px-2 py-0.5 text-xs`}>
                     {Math.round(subspecialist.confidence)}%
                   </Badge>
                 </div>
-                <Progress 
-                  value={subspecialist.confidence} 
+                <Progress
+                  value={subspecialist.confidence}
                   className="h-2 bg-indigo-200 dark:bg-purple-900"
                 />
               </motion.div>
             ))}
           </div>
+
+          {/* Explainability Panel */}
+          {topSubspecialist && (
+            <ExplainabilityPanel
+              subspecialist={topSubspecialist}
+              questionHistory={questionHistory}
+              conditions={conditions}
+              subspecialists={subspecialists}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -75,18 +106,17 @@ export default function SubspecialistPanel({ subspecialists, conditions, doctorM
                   <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
                     {condition.name}
                   </span>
-                  <Badge className={`${
-                    condition.probability >= 60
-                      ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100 border-red-400 dark:border-red-600'
-                      : condition.probability >= 30
+                  <Badge className={`${condition.probability >= 60
+                    ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100 border-red-400 dark:border-red-600'
+                    : condition.probability >= 30
                       ? 'bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100 border-orange-400 dark:border-orange-600'
                       : 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border-yellow-400 dark:border-yellow-600'
-                  } border-2 font-black px-2 py-0.5 text-xs`}>
+                    } border-2 font-black px-2 py-0.5 text-xs`}>
                     {Math.round(condition.probability)}%
                   </Badge>
                 </div>
-                <Progress 
-                  value={condition.probability} 
+                <Progress
+                  value={condition.probability}
                   className="h-2 bg-rose-200 dark:bg-rose-900"
                 />
               </motion.div>
@@ -115,11 +145,10 @@ export default function SubspecialistPanel({ subspecialists, conditions, doctorM
               >
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex-1">
-                    <Badge className={`${
-                      index === 0
-                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
-                        : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
-                    } font-black mb-1 text-xs`}>
+                    <Badge className={`${index === 0
+                      ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                      : 'bg-indigo-200 dark:bg-purple-900 text-indigo-900 dark:text-purple-100 border-2 border-indigo-400 dark:border-purple-600'
+                      } font-black mb-1 text-xs`}>
                       {matchLabels[index]}
                       {index === 0 && <Star className="w-2 h-2 ml-1 inline" />}
                     </Badge>

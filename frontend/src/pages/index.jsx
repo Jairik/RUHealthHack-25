@@ -12,20 +12,24 @@ import AdminRules from "./AdminRules";
 
 import ModelValidation from "./ModelValidation";
 
+import Analytics from "./Analytics";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
-    
+
     Home: Home,
-    
+
     Template: Template,
-    
+
     Dashboard: Dashboard,
-    
+
     AgentTriage: AgentTriage,
-    
+
     AdminRules: AdminRules,
-    
+
+    Analytics: Analytics,
+
 }
 
 function _getCurrentPage(url) {
@@ -45,26 +49,28 @@ function _getCurrentPage(url) {
 function PagesContent() {
     const location = useLocation();
     const currentPage = _getCurrentPage(location.pathname);
-    
+
     return (
         <Layout currentPageName={currentPage}>
-            <Routes>            
-                
-                    <Route path="/" element={<Home />} />
-                
-                
+            <Routes>
+
+                <Route path="/" element={<Home />} />
+
+
                 <Route path="/Home" element={<Home />} />
-                
+
                 <Route path="/Template" element={<Template />} />
-                
+
                 <Route path="/Dashboard" element={<Dashboard />} />
-                
+
                 <Route path="/AgentTriage" element={<AgentTriage />} />
-                
+
                 <Route path="/AdminRules" element={<AdminRules />} />
 
                 <Route path="/ModelValidation" element={<ModelValidation />} />
-                
+
+                <Route path="/Analytics" element={<Analytics />} />
+
             </Routes>
         </Layout>
     );

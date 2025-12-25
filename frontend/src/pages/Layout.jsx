@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Activity, Moon, Sun, Menu, X, LayoutDashboard, ClipboardCheck, Key } from "lucide-react";
+import { Home, Activity, Moon, Sun, Menu, X, LayoutDashboard, ClipboardCheck, Key, BarChart3 } from "lucide-react";
 
 export default function Layout({ children, currentPageName }) {
   const [darkMode, setDarkMode] = useState(true);
@@ -35,6 +35,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Home", path: "Home", icon: Home },
     { name: "Triage", path: "AgentTriage", icon: Activity },
     { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
+    { name: "Analytics", path: "Analytics", icon: BarChart3 },
     { name: "Admin Controls", path: "AdminRules", icon: Key },
     { name: "Validation", path: "ModelValidation", icon: ClipboardCheck },
 
@@ -66,11 +67,10 @@ export default function Layout({ children, currentPageName }) {
                 <Link key={item.path} to={createPageUrl(item.path)}>
                   <Button
                     variant={isActive(item.path) ? "default" : "ghost"}
-                    className={`gap-2 ${
-                      isActive(item.path)
-                        ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 text-white shadow-lg hover:shadow-xl"
-                        : "text-indigo-700 dark:text-purple-300 hover:bg-indigo-100 dark:hover:bg-purple-900/50"
-                    }`}
+                    className={`gap-2 ${isActive(item.path)
+                      ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 text-white shadow-lg hover:shadow-xl"
+                      : "text-indigo-700 dark:text-purple-300 hover:bg-indigo-100 dark:hover:bg-purple-900/50"
+                      }`}
                   >
                     <item.icon className="w-4 h-4" />
                     {item.name}
@@ -117,18 +117,17 @@ export default function Layout({ children, currentPageName }) {
           <div className="md:hidden border-t border-indigo-200 dark:border-purple-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
             <div className="px-6 py-4 space-y-2">
               {navItems.map((item) => (
-                <Link 
-                  key={item.path} 
+                <Link
+                  key={item.path}
                   to={createPageUrl(item.path)}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Button
                     variant={isActive(item.path) ? "default" : "ghost"}
-                    className={`w-full justify-start gap-2 ${
-                      isActive(item.path)
-                        ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 text-white"
-                        : "text-indigo-700 dark:text-purple-300"
-                    }`}
+                    className={`w-full justify-start gap-2 ${isActive(item.path)
+                      ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 text-white"
+                      : "text-indigo-700 dark:text-purple-300"
+                      }`}
                   >
                     <item.icon className="w-4 h-4" />
                     {item.name}

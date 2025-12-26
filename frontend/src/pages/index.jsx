@@ -12,7 +12,6 @@ import AdminRules from "./AdminRules";
 
 import ModelValidation from "./ModelValidation";
 
-import Analytics from "./Analytics";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -28,7 +27,6 @@ const PAGES = {
 
     AdminRules: AdminRules,
 
-    Analytics: Analytics,
 
 }
 
@@ -69,7 +67,6 @@ function PagesContent() {
 
                 <Route path="/ModelValidation" element={<ModelValidation />} />
 
-                <Route path="/Analytics" element={<Analytics />} />
 
             </Routes>
         </Layout>

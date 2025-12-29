@@ -1,7 +1,8 @@
 import sqlite3
 import os
 
-DB_PATH = "lunara.db"
+# Allow overriding via env; default to lunara.db in the user's home directory to avoid repo-local sqlite files
+DB_PATH = os.getenv("LUNARA_DB_PATH", os.path.join(os.path.expanduser("~"), "lunara.db"))
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)

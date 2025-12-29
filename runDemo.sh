@@ -1,8 +1,14 @@
-pyenv install 3.11.0
-pyenv local 3.11.0
+# Install backend dependencies
+echo "Setting up backend virtual environment and installing dependencies..."
 python -m venv venv
 source venv/bin/activate
 pip install uv
 uv pip install -r requirements.txt
 
-cd frontend && npm install && cd npm run devf
+# Install frontend dependencies
+echo "Installing frontend dependencies..."
+cd frontend && npm install 
+
+# Run the frontend and backend servers
+echo "Starting servers..."
+npm run devf

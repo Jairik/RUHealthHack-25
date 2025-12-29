@@ -13,3 +13,13 @@ another note: i redid the database schema to work with SQLite instead of AWS Aur
 third note: i added the ability to remove a triage case from the dashboard, this is conveneient for testing and real-world use
 
 - anuj 
+
+JJ:
+Helper bash scripts can also be used to make it a little bit easier
+-------------------------------------------------
+Full application: bash runDemo.sh
+-------------------------------------------------
+For debugging puposes:
+    Frontend only: bash runFrontend.sh
+    Backend only: bash runBackend.sh
+-------------------------------------------------
